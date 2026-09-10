@@ -1,0 +1,13 @@
+# Build de testes no PC
+testes/build/
+*.o
+*.out
+
+# Arduino
+build/
+*.hex
+*.elf
+
+# Sistema
+.DS_Store
+Thumbs.db
