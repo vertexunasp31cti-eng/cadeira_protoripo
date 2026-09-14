@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindMovie — Cadeira de rodas inteligente controlada por ondas cerebrais</title>
+<meta name="description" content="MindMovie: projeto conceitual de cadeira de rodas inteligente controlada por ondas cerebrais que devolve independência e transforma possibilidades.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Sprite de ícones reutilizáveis -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></symbol>
+  <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"></circle><line x1="12" y1="1.5" x2="12" y2="4.2"></line><line x1="12" y1="19.8" x2="12" y2="22.5"></line><line x1="4.2" y1="4.2" x2="6.1" y2="6.1"></line><line x1="17.9" y1="17.9" x2="19.8" y2="19.8"></line><line x1="1.5" y1="12" x2="4.2" y2="12"></line><line x1="19.8" y1="12" x2="22.5" y2="12"></line><line x1="4.2" y1="19.8" x2="6.1" y2="17.9"></line><line x1="17.9" y1="6.1" x2="19.8" y2="4.2"></line></symbol>
+  <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"></path></symbol>
+  <symbol id="icon-menu" viewBox="0 0 24 24"><line x1="3.5" y1="6.5" x2="20.5" y2="6.5"></line><line x1="3.5" y1="12" x2="20.5" y2="12"></line><line x1="3.5" y1="17.5" x2="20.5" y2="17.5"></line></symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></symbol>
+  <symbol id="icon-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2"></circle><path d="M10.2 8.3l6 3.7-6 3.7z" fill="currentColor" stroke="none"></path></symbol>
+  <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"></path><line x1="12" y1="9.5" x2="12" y2="14"></line><circle cx="12" cy="17.2" r="0.3" fill="currentColor"></circle></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect></symbol>
+  <symbol id="icon-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"></circle><path d="M15.8 12v1.4a2.5 2.5 0 0 0 5 0V12a8.8 8.8 0 1 0-3.5 7"></path></symbol>
+  <symbol id="icon-wheelchair" viewBox="0 0 300 220">
+    <!-- headset EEG: arco sobre a cabeça implícita, acima do encosto -->
+    <path d="M72 60c4-24 20-38 38-38s34 14 38 38" stroke-linecap="round"/>
+    <circle cx="72" cy="60" r="4" fill="currentColor" stroke="none"/>
+    <circle cx="148" cy="60" r="4" fill="currentColor" stroke="none"/>
+    <circle cx="110" cy="22" r="3.2" fill="currentColor" stroke="none"/>
+
+    <!-- encosto -->
+    <rect x="85" y="58" width="26" height="75" rx="9"/>
+    <!-- alça de empurrar -->
+    <path d="M85 66h-12" stroke-linecap="round"/>
+
+    <!-- assento (almofada) -->
+    <rect x="85" y="127" width="92" height="14" rx="6"/>
+
+    <!-- apoio de braço -->
+    <path d="M111 93h36" stroke-linecap="round"/>
+    <path d="M147 93v34" />
+
+    <!-- fio do headset descendo pelas costas até o módulo, contornando o encosto -->
+    <path d="M72 60c-9 26-6 55 10 72c9 10 21 14 32 15" stroke-dasharray="2 6"/>
+
+    <!-- tubo frontal até a roda dianteira -->
+    <path d="M177 138l56 44" stroke-linecap="round"/>
+    <!-- apoio para os pés -->
+    <path d="M199 165l20 12" stroke-linecap="round"/>
+
+    <!-- roda traseira grande, com raios e aro de mão -->
+    <circle cx="105" cy="155" r="48"/>
+    <circle cx="105" cy="155" r="33" opacity="0.7"/>
+    <circle cx="105" cy="155" r="4.5" fill="currentColor" stroke="none"/>
+    <path d="M105 107v96M57 155h96M72 122l66 66M72 188l66-66" opacity="0.75"/>
+
+    <!-- roda dianteira pequena (caster) -->
+    <circle cx="237" cy="187" r="15"/>
+    <circle cx="237" cy="187" r="2.4" fill="currentColor" stroke="none"/>
+
+    <!-- módulo de controle / bateria, acoplado sob o assento -->
+    <rect x="146" y="121" width="40" height="20" rx="5"/>
+    <circle cx="156" cy="131" r="2.4" fill="currentColor" stroke="none"/>
+    <path d="M165 127h13M165 135h9"/>
+  </symbol>
+</svg>
+
+<header class="navbar" id="navbar">
+  <div class="navbar__inner">
+    <a class="brand" href="#visao-geral" data-nav-link data-target="visao-geral">
+      <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="18"></circle>
+        <path d="M12 22c2-6 5-9 8-9s6 3 8 9" stroke-linecap="round"></path>
+        <circle cx="20" cy="14" r="2.4" fill="currentColor" stroke="none"></circle>
+      </svg>
+      <span>MindMovie</span>
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Navegação principal">
+      <a href="#visao-geral" data-nav-link data-target="visao-geral" class="is-active">Visão geral</a>
+      <a href="#como-utilizar" data-nav-link data-target="como-utilizar">Como utilizar</a>
+      <a href="#componentes" data-nav-link data-target="componentes">Componentes</a>
+      <a href="#referencias" data-nav-link data-target="referencias">Referências</a>
+      <a href="#especificacoes" data-nav-link data-target="especificacoes">Especificações</a>
+    </nav>
+
+    <div class="navbar__actions">
+      <div class="search" id="searchBox">
+        <button class="icon-btn" id="searchToggle" type="button" aria-label="Pesquisar no site" aria-expanded="false">
+          <svg width="19" height="19"><use href="#icon-search"></use></svg>
+        </button>
+        <input type="search" id="searchInput" class="search__input" placeholder="Pesquisar no site…" aria-label="Pesquisar conteúdo">
+      </div>
+      <span class="divider" aria-hidden="true"></span>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Alternar tema claro e escuro">
+        <svg width="19" height="19" class="theme-icon theme-icon--sun"><use href="#icon-sun"></use></svg>
+        <svg width="19" height="19" class="theme-icon theme-icon--moon"><use href="#icon-moon"></use></svg>
+      </button>
+      <button class="icon-btn nav-toggle" id="navToggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileMenu">
+        <svg width="21" height="21" class="menu-icon menu-icon--open"><use href="#icon-menu"></use></svg>
+        <svg width="21" height="21" class="menu-icon menu-icon--close"><use href="#icon-close"></use></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#visao-geral" data-nav-link data-target="visao-geral" class="is-active">Visão geral</a>
+    <a href="#como-utilizar" data-nav-link data-target="como-utilizar">Como utilizar</a>
+    <a href="#componentes" data-nav-link data-target="componentes">Componentes</a>
+    <a href="#referencias" data-nav-link data-target="referencias">Referências</a>
+    <a href="#especificacoes" data-nav-link data-target="especificacoes">Especificações</a>
+  </div>
+</header>
+
+<main id="mainContent">
+
+  <!-- VISÃO GERAL -->
+  <section class="page is-active" id="visao-geral" data-page>
+    <div class="page__inner hero">
+      <div class="hero__text">
+        <h1 class="hero__title">
+          <span>Liberdade.</span>
+          <span>Inteligência.</span>
+          <span>Autonomia.</span>
+        </h1>
+        <p class="hero__desc">A cadeira de rodas inteligente controlada por ondas cerebrais que devolve independência e transforma possibilidades.</p>
+      </div>
+      <div class="hero__art">
+        <div class="art-panel">
+          <svg class="wheelchair-illustration wheelchair-illustration--hero" viewBox="0 0 300 220" aria-label="Ilustração da cadeira de rodas MindMovie com sensor neural">
+            <use href="#icon-wheelchair"></use>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO UTILIZAR -->
+  <section class="page" id="como-utilizar" data-page>
+    <div class="page__inner">
+      <header class="section-head">
+        <h2>Como utilizar MindMovie</h2>
+        <p>Tecnologia de ponta, pensada para ser simples e intuitiva.</p>
+      </header>
+
+      <div class="how-grid">
+        <ol class="steps">
+          <li class="steps__item">
+            <span class="steps__num">1</span>
+            <div>
+              <h3>Coloque sensor neural</h3>
+              <p>Posicione o sensor na cabeça.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num">2</span>
+            <div>
+              <h3>Ligue o sistema</h3>
+              <p>Ative o NeuroMove.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num">3</span>
+            <div>
+              <h3>Concentre-se e mova</h3>
+              <p>Pense no destino e a cadeira interpreta.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num">4</span>
+            <div>
+              <h3>Foque e estabilidade</h3>
+              <p>Mantenha a concentração.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num">5</span>
+            <div>
+              <h3>Escolha o modo de navegação</h3>
+              <p>Use comandos mentais para mover.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num">6</span>
+            <div>
+              <h3>Inicie o movimento</h3>
+              <p>A cadeira move com segurança e autonomia.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="video-card">
+          <button class="video-card__play" type="button" aria-label="Reproduzir vídeo demonstrativo (indisponível nesta prévia)">
+            <svg width="34" height="34"><use href="#icon-play"></use></svg>
+          </button>
+          <p class="video-card__title">Video demo - Funcionamento do MindMovie</p>
+          <p class="video-card__meta">Duração: 1 minuto e 30 segundos</p>
+        </div>
+      </div>
+
+      <div class="alert-box">
+        <svg width="20" height="20" class="alert-box__icon"><use href="#icon-alert"></use></svg>
+        <p><strong>Atenção</strong> — este não é um produto médico, apenas o projeto conceitual de inovação e tecnologia assistida em desenvolvimento.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTES -->
+  <section class="page" id="componentes" data-page>
+    <div class="page__inner">
+      <header class="section-head">
+        <h2>Componentes utilizados no projeto</h2>
+        <p>Cada componente foi selecionado para oferecer máxima confiabilidade e eficiência.</p>
+      </header>
+
+      <div class="table-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Função</th>
+              <th>Valor estimado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Componente">V3 Elechouse</td>
+              <td data-label="Função">Captar e interpretar sinais cerebrais para o sistema</td>
+              <td data-label="Valor estimado">R$ 80,00 a R$ 120,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Ponte H</td>
+              <td data-label="Função">Controlar o sentido e velocidade dos motores</td>
+              <td data-label="Valor estimado">R$ 20,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">2 motores DC</td>
+              <td data-label="Função">Realizar a movimentação da cadeira de rodas</td>
+              <td data-label="Valor estimado">R$ 30,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">ESP com internet</td>
+              <td data-label="Função">Fazer o processamento e comunicação dos dados do sistema</td>
+              <td data-label="Valor estimado">Utilizado inicialmente o da escola</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Display IPS</td>
+              <td data-label="Função">Exibir informações e status do sistema</td>
+              <td data-label="Valor estimado">R$ 80,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Sensor de distância a laser</td>
+              <td data-label="Função">Detectar obstáculos e medir distância</td>
+              <td data-label="Valor estimado">R$ 35,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Módulo GPS</td>
+              <td data-label="Função">Localização e rastreamento em tempo real</td>
+              <td data-label="Valor estimado">R$ 40,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Câmera para acoplamento</td>
+              <td data-label="Função">Auxiliar no monitoramento e visualização</td>
+              <td data-label="Valor estimado">R$ 40,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Protoboard</td>
+              <td data-label="Função">Base de montagem e testes do protótipo</td>
+              <td data-label="Valor estimado">R$ 20,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Fios jumper</td>
+              <td data-label="Função">Fazer conexões entre os componentes</td>
+              <td data-label="Valor estimado">R$ 0,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Bateria recarregável</td>
+              <td data-label="Função">Alimentar o sistema com energia</td>
+              <td data-label="Valor estimado">R$ 0,00</td>
+            </tr>
+            <tr>
+              <td data-label="Componente">Estrutura da cadeira em impressão 3D</td>
+              <td data-label="Função">Formar a estrutura física do protótipo</td>
+              <td data-label="Valor estimado">R$ 20,00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-text">
+          <h3>Resultado esperado:</h3>
+          <p>Uma cadeira de rodas inteligente, segura e acessível, capaz de transformar a mobilidade e devolver autonomia ao usuário.</p>
+          <svg class="wheelchair-illustration wheelchair-illustration--small" viewBox="0 0 300 220" aria-hidden="true">
+            <use href="#icon-wheelchair"></use>
+          </svg>
+        </div>
+        <div class="result-card">
+          <p class="result-card__label">Valor estimado final:</p>
+          <p class="result-card__value">R$ 705,00</p>
+          <p class="result-card__note">Este valor é uma estimativa com base nos componentes atuais do mercado. Pode variar conforme fornecedores e a versão do protótipo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REFERÊNCIAS -->
+  <section class="page" id="referencias" data-page>
+    <div class="page__inner">
+      <header class="section-head">
+        <h2>Referências e base científica</h2>
+        <p>O projeto NeuroMove é baseado em estudos de neurociência, robótica e mobilidade assistiva.</p>
+      </header>
+
+      <ul class="ref-list">
+        <li class="ref-card">
+          <span class="ref-card__icon"><svg width="18" height="18"><use href="#icon-check"></use></svg></span>
+          <div>
+            <h3>IEEE — Brain Computer Interfaces</h3>
+            <p>“Estudos sobre interfaces cérebro-computador aplicadas à mobilidade.”</p>
+          </div>
+        </li>
+        <li class="ref-card">
+          <span class="ref-card__icon"><svg width="18" height="18"><use href="#icon-check"></use></svg></span>
+          <div>
+            <h3>Neurologia do movimento e reabilitação</h3>
+            <p>“Pesquisas sobre controle neural de dispositivos assistivos.”</p>
+          </div>
+        </li>
+        <li class="ref-card">
+          <span class="ref-card__icon"><svg width="18" height="18"><use href="#icon-check"></use></svg></span>
+          <div>
+            <h3>Robótica assistiva e automação</h3>
+            <p>“Soluções de robótica voltadas à acessibilidade e autonomia.”</p>
+          </div>
+        </li>
+        <li class="ref-card">
+          <span class="ref-card__icon"><svg width="18" height="18"><use href="#icon-check"></use></svg></span>
+          <div>
+            <h3>OMS — Organização Mundial da Saúde</h3>
+            <p>“Diretrizes sobre inclusão, acessibilidade e tecnologia assistiva.”</p>
+          </div>
+        </li>
+        <li class="ref-card">
+          <span class="ref-card__icon"><svg width="18" height="18"><use href="#icon-check"></use></svg></span>
+          <div>
+            <h3>Artigos científicos e universidades parceiras</h3>
+            <p>“Base científica para o desenvolvimento de reabilitação neuroassistida.”</p>
+          </div>
+        </li>
+      </ul>
+
+      <p class="ref-footnote">*Essas referências garantem que o projeto esteja alinhado com os avanços científicos e com as melhores práticas de inclusão e acessibilidade.</p>
+    </div>
+  </section>
+
+  <!-- ESPECIFICAÇÕES / QUEM SOMOS -->
+  <section class="page" id="especificacoes" data-page>
+    <div class="page__inner">
+      <header class="section-head">
+        <h2>Quem somos</h2>
+        <p>Somos uma equipe multidisciplinar apaixonada por inovação e inclusão, unida pela missão de transformar vidas.</p>
+      </header>
+
+      <div class="team-grid">
+        <div class="team-list">
+          <div class="team-card">
+            <span class="team-card__avatar" style="--avatar-a:#f0abfc;--avatar-b:#a855f7;">V</span>
+            <div>
+              <h3>Victória</h3>
+              <p><svg width="13" height="13"><use href="#icon-at"></use></svg> victoria.mindmovie</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <span class="team-card__avatar" style="--avatar-a:#93c5fd;--avatar-b:#6366f1;">G</span>
+            <div>
+              <h3>Geovanna</h3>
+              <p><svg width="13" height="13"><use href="#icon-at"></use></svg> geovanna.dev</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <span class="team-card__avatar" style="--avatar-a:#fca5a5;--avatar-b:#ea580c;">R</span>
+            <div>
+              <h3>Raphael</h3>
+              <p><svg width="13" height="13"><use href="#icon-at"></use></svg> devraphael</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <span class="team-card__avatar" style="--avatar-a:#86efac;--avatar-b:#0d9488;">B</span>
+            <div>
+              <h3>Bryan</h3>
+              <p><svg width="13" height="13"><use href="#icon-at"></use></svg> djrbryan</p>
+            </div>
+          </div>
+          <div class="team-card team-card--single">
+            <span class="team-card__avatar" style="--avatar-a:#fde68a;--avatar-b:#d97706;">M</span>
+            <div>
+              <h3>Matheus Masson</h3>
+              <p><svg width="13" height="13"><use href="#icon-at"></use></svg> masson_ttv</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-card">
+          <h3>Entre em contato</h3>
+          <form id="contactForm" novalidate>
+            <label class="field">
+              <span>Nome</span>
+              <input type="text" name="nome" id="fieldNome" required autocomplete="name">
+            </label>
+            <label class="field">
+              <span>E-mail</span>
+              <input type="email" name="email" id="fieldEmail" required autocomplete="email">
+            </label>
+            <label class="field">
+              <span>Mensagem</span>
+              <textarea name="mensagem" id="fieldMensagem" rows="4" required></textarea>
+            </label>
+            <button type="submit" class="btn-primary">Enviar mensagem</button>
+            <p class="contact-card__note" id="contactNote">Respondemos assim que possível.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/app.js"></script>
+</body>
+</html>
