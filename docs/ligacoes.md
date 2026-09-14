@@ -8,10 +8,10 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 | L298N | Arduino Mega | Observação |
 |-------|--------------|-----------|
 | ENA   | 5            | PWM, velocidade do motor esquerdo |
-| IN1   | 22           | sentido do motor esquerdo |
-| IN2   | 23           | sentido do motor esquerdo |
-| IN3   | 24           | sentido do motor direito |
-| IN4   | 25           | sentido do motor direito |
+| IN1   | 35           | sentido do motor esquerdo |
+| IN2   | 33           | sentido do motor esquerdo |
+| IN3   | 34           | sentido do motor direito |
+| IN4   | 32           | sentido do motor direito |
 | ENB   | 6            | PWM, velocidade do motor direito |
 | GND   | GND          | terra comum, obrigatório |
 | OUT1/OUT2 | motor esquerdo | |
@@ -20,9 +20,13 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 Retire os jumpers de ENA e ENB. Com eles instalados a placa ignora o PWM e
 os motores só funcionam em velocidade máxima.
 
-Por que os pinos 5 e 6: no Mega, os pinos 4 e 13 usam o Timer0, o mesmo
-timer da função `millis()`. Usar PWM neles atrapalha a base de tempo, e toda
-a segurança do projeto depende de `millis()`.
+Os pinos de 32 a 35 não têm PWM, e não precisam ter: eles só definem o
+sentido de giro, com nível alto ou baixo. Quem controla a velocidade é o par
+ENA e ENB, e esses dois precisam de pino PWM.
+
+Por que os pinos 5 e 6 para ENA e ENB: no Mega, os pinos 4 e 13 usam o
+Timer0, o mesmo timer da função `millis()`. Usar PWM neles atrapalha a base
+de tempo, e toda a segurança do projeto depende de `millis()`.
 
 ## 2. Módulo de Reconhecimento de Voz V3
 

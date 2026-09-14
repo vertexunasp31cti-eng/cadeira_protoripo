@@ -16,11 +16,15 @@
 // ENA e ENB precisam ser pinos PWM. No Mega evite os pinos 4 e 13: eles usam
 // o Timer0, o mesmo do millis(). Os pinos 5 e 6 estao em timers livres.
 const uint8_t PINO_ENA = 5;   // PWM - velocidade do motor esquerdo
-const uint8_t PINO_IN1 = 22;  // sentido do motor esquerdo
-const uint8_t PINO_IN2 = 23;
+const uint8_t PINO_IN1 = 35;  // sentido do motor esquerdo
+const uint8_t PINO_IN2 = 33;
 const uint8_t PINO_ENB = 6;   // PWM - velocidade do motor direito
-const uint8_t PINO_IN3 = 24;  // sentido do motor direito
-const uint8_t PINO_IN4 = 25;
+const uint8_t PINO_IN3 = 34;  // sentido do motor direito
+const uint8_t PINO_IN4 = 32;
+
+// Os pinos 32 a 35 nao tem PWM no Mega, e nem precisam: eles so definem o
+// sentido de giro. Quem controla a velocidade e ENA/ENB, que precisam
+// obrigatoriamente de pinos PWM.
 
 // Se uma roda girar ao contrario do esperado, troque para true em vez de
 // inverter os fios no L298N.
