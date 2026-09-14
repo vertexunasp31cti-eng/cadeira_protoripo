@@ -1,0 +1,573 @@
+/* =========================
+   CONFIGURAÇÕES GERAIS
+========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    background: #000000;
+    color: #ffffff;
+
+    transition:
+        background 0.3s ease,
+        color 0.3s ease;
+}
+
+
+/* =========================
+   CABEÇALHO
+========================= */
+
+.cabecalho {
+    width: 100%;
+    height: 58px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 22px;
+
+    background: #030305;
+
+    border-bottom: 1px solid #17171c;
+
+    position: relative;
+
+    z-index: 1000;
+}
+
+
+/* =========================
+   LOGO
+========================= */
+
+.logo {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    text-decoration: none;
+
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.logo img {
+    width: 31px;
+    height: 31px;
+
+    object-fit: contain;
+}
+
+.logo span {
+    color: #ffffff;
+}
+
+
+/* =========================
+   MENU
+========================= */
+
+.menu {
+    display: flex;
+    align-items: center;
+
+    gap: 42px;
+
+    /*
+       Joga o menu para o lado direito.
+    */
+    margin-left: auto;
+}
+
+.menu a {
+    color: #ffffff;
+
+    text-decoration: none;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    transition: color 0.2s ease;
+}
+
+.menu a:hover {
+    color: #9b84ed;
+}
+
+
+/* =========================
+   BOTÃO CLARO / ESCURO
+========================= */
+
+.theme-toggle {
+    margin-left: 18px;
+
+    height: 29px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 9px;
+
+    background: #08080b;
+
+    border: 1px solid #202027;
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.3s ease,
+        border 0.3s ease;
+}
+
+.theme-toggle:hover {
+    border-color: #34343c;
+}
+
+.theme-icon {
+    width: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 13px;
+
+    line-height: 1;
+
+    transition: color 0.3s ease;
+}
+
+.theme-icon.moon {
+    color: #777780;
+}
+
+.theme-icon.sun {
+    color: #44444c;
+}
+
+.theme-line {
+    width: 1px;
+    height: 17px;
+
+    background: #29292f;
+}
+
+
+/* =========================
+   BOTÃO HAMBÚRGUER
+========================= */
+
+.botao-menu {
+    display: none;
+
+    width: 32px;
+    height: 32px;
+
+    margin-left: 10px;
+
+    background: transparent;
+
+    border: none;
+
+    cursor: pointer;
+
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+}
+
+.botao-menu span {
+    width: 20px;
+    height: 2px;
+
+    background: #ffffff;
+
+    border-radius: 5px;
+
+    transition: 0.3s ease;
+}
+
+
+/* =========================
+   SEÇÃO INICIAL
+========================= */
+
+.inicio {
+    min-height: calc(100vh - 58px);
+
+    display: flex;
+    align-items: center;
+
+    background:
+        radial-gradient(
+            circle at 73% 48%,
+            rgba(113, 75, 210, 0.13),
+            transparent 38%
+        ),
+        #000000;
+
+    transition: background 0.3s ease;
+}
+
+
+/* =========================
+   CONTEÚDO
+========================= */
+
+.conteudo-inicio {
+    width: 100%;
+    max-width: 1250px;
+
+    margin: 0 auto;
+
+    padding: 70px 70px;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    align-items: center;
+
+    gap: 50px;
+}
+
+
+/* =========================
+   TEXTO
+========================= */
+
+.texto-inicio {
+    position: relative;
+
+    z-index: 2;
+}
+
+.nome-projeto {
+    margin-bottom: 18px;
+
+    color: #9b84ed;
+
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.texto-inicio h1 {
+    margin-bottom: 30px;
+
+    color: #ffffff;
+
+    font-size: clamp(52px, 6vw, 86px);
+
+    line-height: 0.98;
+
+    letter-spacing: -3px;
+
+    font-weight: 700;
+}
+
+.descricao {
+    max-width: 430px;
+
+    color: #cfcfd4;
+
+    font-size: 17px;
+
+    line-height: 1.55;
+}
+
+
+/* =========================
+   CADEIRA
+========================= */
+
+.imagem-cadeira {
+    width: 100%;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.imagem-cadeira img {
+    width: 100%;
+    max-width: 600px;
+
+    position: relative;
+
+    z-index: 2;
+}
+
+.brilho {
+    position: absolute;
+
+    width: 500px;
+    height: 500px;
+
+    border-radius: 50%;
+
+    background: rgba(114, 77, 218, 0.14);
+
+    filter: blur(90px);
+
+    z-index: 1;
+}
+
+
+/* ==================================================
+   MODO CLARO
+================================================== */
+
+body.light {
+    background: #ffffff;
+
+    color: #111111;
+}
+
+body.light .cabecalho {
+    background: #ffffff;
+
+    border-bottom: 1px solid #e7e7eb;
+}
+
+body.light .logo,
+body.light .logo span {
+    color: #111111;
+}
+
+body.light .menu a {
+    color: #111111;
+}
+
+body.light .menu a:hover {
+    color: #7048e8;
+}
+
+body.light .theme-toggle {
+    background: #f8f8fa;
+
+    border-color: #dedee4;
+}
+
+body.light .theme-icon.moon {
+    color: #a1a1aa;
+}
+
+body.light .theme-icon.sun {
+    color: #111111;
+}
+
+body.light .theme-line {
+    background: #d8d8dd;
+}
+
+body.light .inicio {
+    background:
+        radial-gradient(
+            circle at 73% 48%,
+            rgba(112, 72, 232, 0.10),
+            transparent 38%
+        ),
+        #ffffff;
+}
+
+body.light .nome-projeto {
+    color: #7048e8;
+}
+
+body.light .texto-inicio h1 {
+    color: #111111;
+}
+
+body.light .descricao {
+    color: #4c4c54;
+}
+
+body.light .botao-menu span {
+    background: #111111;
+}
+
+
+/* =========================
+   TELAS MENORES
+========================= */
+
+@media (max-width: 1000px) {
+
+    .menu {
+        gap: 25px;
+    }
+
+    .menu a {
+        font-size: 9px;
+    }
+
+}
+
+
+/* =========================
+   TABLET / CELULAR
+========================= */
+
+@media (max-width: 800px) {
+
+    .cabecalho {
+        height: 60px;
+
+        padding: 0 18px;
+    }
+
+
+    /* MENU */
+
+    .menu {
+        position: absolute;
+
+        top: 60px;
+        left: 0;
+
+        width: 100%;
+
+        margin-left: 0;
+
+        display: none;
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 0;
+
+        padding: 15px 20px;
+
+        background: #08080b;
+
+        border-top: 1px solid #202027;
+    }
+
+    .menu.aberto {
+        display: flex;
+    }
+
+    .menu a {
+        width: 100%;
+
+        padding: 14px 5px;
+
+        font-size: 13px;
+
+        border-bottom: 1px solid #18181d;
+    }
+
+
+    /* MODO CLARO MENU */
+
+    body.light .menu {
+        background: #ffffff;
+
+        border-color: #e6e6ea;
+    }
+
+    body.light .menu a {
+        border-color: #eeeeF1;
+    }
+
+
+    /* BOTÃO HAMBÚRGUER */
+
+    .botao-menu {
+        display: flex;
+    }
+
+
+    /* CONTEÚDO */
+
+    .conteudo-inicio {
+        grid-template-columns: 1fr;
+
+        padding: 60px 25px;
+
+        text-align: center;
+    }
+
+    .descricao {
+        margin: 0 auto;
+    }
+
+    .imagem-cadeira {
+        margin-top: 20px;
+    }
+
+    .imagem-cadeira img {
+        max-width: 450px;
+    }
+
+}
+
+
+/* =========================
+   CELULAR PEQUENO
+========================= */
+
+@media (max-width: 480px) {
+
+    .logo span {
+        font-size: 12px;
+    }
+
+    .logo img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .theme-toggle {
+        height: 27px;
+
+        padding: 0 7px;
+
+        gap: 5px;
+    }
+
+    .theme-icon {
+        font-size: 12px;
+    }
+
+    .texto-inicio h1 {
+        font-size: 48px;
+
+        letter-spacing: -2px;
+    }
+
+    .descricao {
+        font-size: 15px;
+    }
+
+}
