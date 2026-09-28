@@ -88,6 +88,17 @@ Abra `firmware/cadeira_voz/cadeira_voz.ino` no Arduino IDE, selecione a
 placa **Arduino Mega 2560** e envie. Nenhuma biblioteca externa é
 necessária.
 
+Se preferir o PlatformIO, o projeto já tem `platformio.ini` pronto. A placa é
+`megaatmega2560`, e basta rodar:
+
+```bash
+pio run --target upload
+pio device monitor
+```
+
+Para gravar a ferramenta de treinamento em vez do firmware, troque a linha
+`src_dir` no `platformio.ini`. O arquivo explica como.
+
 O Monitor Serial em 115200 mostra a telemetria: estado atual, PWM de cada
 roda, nível de velocidade, situação do sensor e motivo da última parada.
 

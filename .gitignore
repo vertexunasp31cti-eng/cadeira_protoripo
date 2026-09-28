@@ -3,6 +3,9 @@ testes/build/
 *.o
 *.out
 
+# PlatformIO
+.pio/
+
 # Arduino
 build/
 *.hex
