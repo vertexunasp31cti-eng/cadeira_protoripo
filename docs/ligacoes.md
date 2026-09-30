@@ -102,7 +102,29 @@ Não alimente os motores pelo pino 5V do Arduino. O pico de partida de dois
 motores passa do que o regulador da placa aguenta e a placa reinicia sozinha
 no meio da operação.
 
-## 6. ESP8266 embarcado
+## 6. Chaves DIP da placa
+
+A placa tem um bloco de oito chaves DIP que decide quem conversa pelo cabo
+USB. Errar essa posição é a causa mais comum de falha na gravação, e o
+sintoma é `avrdude: stk500v2_getsync(): timeout`.
+
+Tabela confirmada em bancada:
+
+| Chaves ligadas | Rótulo na placa | Para que serve |
+|---|---|---|
+| **3 e 4** | `USB←→MCU` | **gravar o firmware no Mega** |
+| 1 e 2 | `MCU←→ESP` | o Mega conversar com o Wi-Fi |
+| 5 e 6 | `USB←→ESP` | gravar o ESP8266 |
+| 7 | `GND←GPIO0` | modo de gravação do ESP |
+
+A placa costuma sair de fábrica com as chaves 5, 6 e 7 ligadas, que é o modo
+de gravar o ESP8266. Nessa posição o computador enxerga a porta serial
+normalmente, mas o ATmega2560 nunca responde, porque o cabo está ligado no
+outro chip.
+
+Para o uso normal deste projeto: **apenas as chaves 3 e 4 ligadas**.
+
+## 7. ESP8266 embarcado
 
 A placa Mega 2560 + ESP8266 traz o ESP ligado à `Serial3` por chaves DIP.
 O firmware já publica a telemetria em JSON nessa porta, mas o recurso vem
@@ -112,7 +134,7 @@ Deixe o Wi-Fi fora do caminho de segurança. Comando por rede introduz atraso
 e perda de pacote, e este protótipo depende de tempo de resposta previsível
 para parar.
 
-## 7. Diagrama de blocos
+## 8. Diagrama de blocos
 
 ```
       voz do usuário
