@@ -40,8 +40,16 @@ class VR3 {
   explicit VR3(Stream& porta);
 
   // Limpa o reconhecedor e carrega os registros indicados (no maximo 7).
+  // Tenta algumas vezes, porque o modulo leva um tempo para ligar e pode
+  // perder a primeira pergunta se o Arduino falar cedo demais.
   // Retorna false se o modulo nao responder. Use apenas fora da conducao.
   bool iniciar(const uint8_t* registros, uint8_t quantidade);
+
+  // Quantos bytes chegaram do modulo na ultima tentativa de iniciar().
+  // Zero significa que nada saiu do modulo: e problema de fio ou de energia.
+  // Maior que zero com falha significa que ele falou, mas em outro formato:
+  // quase sempre baud errado.
+  uint16_t bytesRecebidos() const { return bytes_vistos_; }
 
   // Grava um registro. O modulo pede a palavra duas vezes e sinaliza sozinho.
   // Bloqueia ate o modulo responder ou esgotar o tempo.
@@ -70,6 +78,7 @@ class VR3 {
   uint8_t idx_;
   uint8_t quadro_[32];   // ultimo quadro completo
   uint8_t quadro_tam_;
+  uint16_t bytes_vistos_;  // diagnostico: bytes lidos da porta
   const char* erro_;
 };
 

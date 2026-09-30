@@ -216,6 +216,9 @@ void setup() {
   } else {
     SERIAL_DEBUG.print(F("ATENCAO - modulo de voz indisponivel: "));
     SERIAL_DEBUG.println(voz.ultimoErro());
+    SERIAL_DEBUG.print(F("  bytes recebidos do modulo: "));
+    SERIAL_DEBUG.println(voz.bytesRecebidos());
+    SERIAL_DEBUG.println(F("  esperado: modulo TX no pino 19, RX no pino 18"));
 #if MODO_SIMULACAO
     SERIAL_DEBUG.println(F("Seguindo apenas com os comandos do teclado."));
 #endif

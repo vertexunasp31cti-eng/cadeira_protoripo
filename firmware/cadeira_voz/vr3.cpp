@@ -15,7 +15,7 @@ static const uint8_t POS_TREINO_REGISTRO = 4;
 static const uint8_t POS_TREINO_STATUS = 5;
 
 VR3::VR3(Stream& porta)
-    : porta_(porta), idx_(0), quadro_tam_(0), erro_("") {}
+    : porta_(porta), idx_(0), quadro_tam_(0), bytes_vistos_(0), erro_("") {}
 
 bool VR3::enviarComando(uint8_t cmd, const uint8_t* dados, uint8_t n) {
   if (n > 20) return false;
@@ -36,6 +36,7 @@ uint8_t VR3::receberQuadro(unsigned long timeout_ms) {
   while ((millis() - inicio) < timeout_ms) {
     if (!porta_.available()) continue;
     uint8_t b = (uint8_t)porta_.read();
+    ++bytes_vistos_;  // conta tudo que chega, ate o que nao faz sentido
 
     if (n == 0) {
       if (b != QUADRO_INICIO) continue;
@@ -81,11 +82,25 @@ bool VR3::iniciar(const uint8_t* registros, uint8_t quantidade) {
     return false;
   }
 
-  while (porta_.available()) porta_.read();  // descarta lixo acumulado
+  bytes_vistos_ = 0;
 
-  enviarComando(CMD_LIMPAR, NULL, 0);
-  if (!esperarComando(CMD_LIMPAR, 1000)) {
-    erro_ = "modulo de voz nao respondeu (confira RX/TX cruzados e o baud)";
+  // O modulo leva algumas centenas de milissegundos para ligar. Se o Arduino
+  // perguntar antes disso, a resposta nunca vem. Por isso tentamos varias
+  // vezes ao longo de alguns segundos, em vez de desistir na primeira.
+  bool respondeu = false;
+  for (uint8_t tentativa = 0; tentativa < 6 && !respondeu; ++tentativa) {
+    while (porta_.available()) porta_.read();  // descarta lixo acumulado
+    enviarComando(CMD_LIMPAR, NULL, 0);
+    respondeu = esperarComando(CMD_LIMPAR, 400);
+    if (!respondeu) delay(250);
+  }
+
+  if (!respondeu) {
+    erro_ = (bytes_vistos_ == 0)
+        ? "nenhum byte chegou do modulo (confira alimentacao e o fio TX do "
+          "modulo no pino 19)"
+        : "o modulo respondeu, mas em formato desconhecido (baud diferente "
+          "de 9600?)";
     return false;
   }
 
