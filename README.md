@@ -116,9 +116,28 @@ teclado pelo Monitor Serial:
 | `p` ou espaço | parar |
 | `+` | mais rápido |
 | `-` | mais devagar |
+| `?` | diagnóstico: botão de emergência, sensor IR e módulo de voz |
+| `m` | testa cada motor direto, sem a lógica (levante as rodas) |
 
-Isso permite ajustar a mecânica antes de treinar a voz, e serve de plano B na
-apresentação se o ambiente estiver barulhento demais.
+Cada comando de movimento dura 3 segundos. Para continuar andando, repita o
+comando: é a proteção de homem-morto.
+
+O teclado permite ajustar a mecânica antes de treinar a voz, e serve de plano
+B na apresentação se o ambiente estiver barulhento demais.
+
+### 5. A cadeira não anda
+
+O diagnóstico aparece sozinho ao ligar e também com `?`. Ele aponta os três
+casos que deixam a cadeira parada:
+
+- `botao de emergencia (pino 3): ACIONADO`: o pino 3 está em GND. Nesse
+  estado nenhum comando é atendido e a mensagem `EMERGENCIA` se repete. Sem
+  botão instalado, nada deve estar ligado no pino 3.
+- `sensor IR (pino 2): OBSTACULO`: o `frente` é recusado com dois bipes.
+  Ajuste o trimpot do sensor ou confira a fiação.
+- Tudo livre, a telemetria mostra `pwm=130/130`, mas a roda não gira: o
+  problema é de potência. Use `m` para confirmar e confira a bateria do
+  L298N, o GND comum e os jumpers de ENA e ENB.
 
 ## Testes automatizados
 

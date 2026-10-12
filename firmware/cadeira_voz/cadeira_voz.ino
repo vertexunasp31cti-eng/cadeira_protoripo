@@ -43,6 +43,9 @@ ControleCadeira controle;
 VR3 voz(SERIAL_VOZ);
 
 bool voz_pronta = false;
+unsigned long t_aviso_emergencia = 0;
+
+void tratarComando(Comando c, unsigned long agora, const char* origem);
 unsigned long t_telemetria = 0;
 
 // ---------------------------------------------------------------------------
@@ -112,9 +115,7 @@ void atualizarSinalizacao(unsigned long agora) {
 // Entrada de comandos digitados, para testar sem o modulo de voz
 // ---------------------------------------------------------------------------
 #if MODO_SIMULACAO
-Comando lerComandoDigitado() {
-  if (!SERIAL_DEBUG.available()) return CMD_NENHUM;
-  char c = (char)SERIAL_DEBUG.read();
+Comando comandoDaTecla(char c) {
   switch (c) {
     case 'f': case 'F': return CMD_FRENTE;
     case 't': case 'T': return CMD_RE;
@@ -129,6 +130,105 @@ Comando lerComandoDigitado() {
 #endif
 
 // ---------------------------------------------------------------------------
+// Diagnostico de bancada
+// ---------------------------------------------------------------------------
+bool emergenciaAcionada() {
+  return digitalRead(PINO_BOTAO_EMERG) == NIVEL_BOTAO_ACIONADO;
+}
+
+// Mostra tudo que pode impedir a cadeira de andar. Roda no fim do setup() e
+// quando se digita '?' no Monitor Serial.
+void diagnostico() {
+  SERIAL_DEBUG.println(F("--- diagnostico ---"));
+
+  SERIAL_DEBUG.print(F("modulo de voz: "));
+  SERIAL_DEBUG.println(voz_pronta ? F("pronto") : F("INDISPONIVEL"));
+
+  SERIAL_DEBUG.print(F("botao de emergencia (pino 3): "));
+  if (emergenciaAcionada()) {
+    SERIAL_DEBUG.println(F("ACIONADO - a cadeira fica travada"));
+    SERIAL_DEBUG.println(F("  O pino 3 esta em GND. Se nao ha botao, nada deve"));
+    SERIAL_DEBUG.println(F("  estar ligado nele. Botao precisa ser NA (normal-"));
+    SERIAL_DEBUG.println(F("  mente aberto), nao NF."));
+  } else {
+    SERIAL_DEBUG.println(F("livre"));
+  }
+
+  SERIAL_DEBUG.print(F("sensor IR (pino 2): "));
+  if (digitalRead(PINO_SENSOR_IR) == NIVEL_IR_DETECTADO) {
+    SERIAL_DEBUG.println(F("OBSTACULO - 'frente' sera recusado"));
+    SERIAL_DEBUG.println(F("  Sem nada na frente? Gire o trimpot do sensor, confira"));
+    SERIAL_DEBUG.println(F("  VCC/GND/OUT, ou mude NIVEL_IR_DETECTADO no config.h."));
+  } else {
+    SERIAL_DEBUG.println(F("livre"));
+  }
+
+  SERIAL_DEBUG.println(F("Digite m para testar os motores direto, sem a logica."));
+  SERIAL_DEBUG.println(F("-------------------"));
+}
+
+// Espera sem travar a resposta ao botao de emergencia. Retorna false se o
+// botao foi acionado durante a espera.
+bool esperarTesteMotor(unsigned long ms) {
+  unsigned long inicio = millis();
+  while (millis() - inicio < ms) {
+    if (emergenciaAcionada()) return false;
+  }
+  return true;
+}
+
+// Liga cada motor nos dois sentidos, passando por cima da maquina de estados.
+// Serve para separar problema de fiacao/alimentacao de problema de programa:
+// se aqui a roda nao gira, o defeito esta na ponte H, nos motores ou na
+// bateria. Levante as rodas do chao antes de usar.
+void testeMotores() {
+  if (controle.emMovimento()) {
+    SERIAL_DEBUG.println(F("Pare a cadeira antes do teste de motores."));
+    return;
+  }
+  const int PWM_TESTE = 200;
+  const char* const nomes[4] = {"esquerdo para frente", "esquerdo para tras",
+                                "direito para frente", "direito para tras"};
+  const int esq[4] = {PWM_TESTE, -PWM_TESTE, 0, 0};
+  const int dir[4] = {0, 0, PWM_TESTE, -PWM_TESTE};
+
+  SERIAL_DEBUG.println(F("Teste de motores (PWM 200, 1 s cada):"));
+  for (uint8_t i = 0; i < 4; ++i) {
+    SERIAL_DEBUG.print(F("  motor "));
+    SERIAL_DEBUG.println(nomes[i]);
+    motores.aplicar(esq[i], dir[i]);
+    bool ok = esperarTesteMotor(1000);
+    motores.desligar();
+    if (!ok) {
+      SERIAL_DEBUG.println(F("  interrompido pelo botao de emergencia"));
+      return;
+    }
+    esperarTesteMotor(300);
+  }
+  SERIAL_DEBUG.println(F("Fim do teste. Se alguma roda nao girou, confira:"));
+  SERIAL_DEBUG.println(F("  bateria no VMS/12V do L298N, GND da bateria ligado"));
+  SERIAL_DEBUG.println(F("  ao GND do Mega, jumpers ENA/ENB retirados, fios"));
+  SERIAL_DEBUG.println(F("  ENA=5 IN1=35 IN2=33 ENB=6 IN3=34 IN4=32."));
+}
+
+void lerTeclado(unsigned long agora) {
+  if (!SERIAL_DEBUG.available()) return;
+  char c = (char)SERIAL_DEBUG.read();
+  if (c == '?') {
+    diagnostico();
+  } else if (c == 'm' || c == 'M') {
+    testeMotores();
+  }
+#if MODO_SIMULACAO
+  else {
+    tratarComando(comandoDaTecla(c), agora, "teclado");
+  }
+#else
+  (void)agora;
+#endif
+}
+
+// ---------------------------------------------------------------------------
 void mostrarAjuda() {
   SERIAL_DEBUG.println(F("==================================================="));
   SERIAL_DEBUG.println(F(" Cadeira de rodas com comando de voz - prototipo"));
@@ -138,6 +238,9 @@ void mostrarAjuda() {
 #if MODO_SIMULACAO
   SERIAL_DEBUG.println(F(" Teclado:  f t e d p (espaco=parar) + -"));
 #endif
+  SERIAL_DEBUG.println(F("           ? diagnostico   m testa os motores"));
+  SERIAL_DEBUG.println(F(" Cada comando de movimento dura 3 s: repita para"));
+  SERIAL_DEBUG.println(F(" continuar andando (protecao homem-morto)."));
   SERIAL_DEBUG.println(F("---------------------------------------------------"));
 }
 
@@ -256,6 +359,7 @@ void setup() {
     delay(60);
     bipDeInicializacao(60);
   }
+  diagnostico();
   t_telemetria = millis();
 }
 
@@ -263,10 +367,16 @@ void loop() {
   unsigned long agora = millis();
 
   // 1) Botao fisico de emergencia tem prioridade sobre qualquer comando.
-  if (digitalRead(PINO_BOTAO_EMERG) == NIVEL_BOTAO_ACIONADO) {
+  //    Avisa pela serial a cada 2 s, senao a cadeira parece travada sem
+  //    motivo: nessa situacao nenhum comando nem a telemetria sao atendidos.
+  if (emergenciaAcionada()) {
     controle.pararEmergencia(agora);
     motores.aplicar(0, 0);
     digitalWrite(PINO_LED, HIGH);
+    if (agora - t_aviso_emergencia >= 2000) {
+      t_aviso_emergencia = agora;
+      SERIAL_DEBUG.println(F("EMERGENCIA: pino 3 em GND, comandos ignorados."));
+    }
     return;
   }
 
@@ -278,10 +388,8 @@ void loop() {
     }
   }
 
-  // 3) Comandos digitados (bancada e demonstracao).
-#if MODO_SIMULACAO
-  tratarComando(lerComandoDigitado(), agora, "teclado");
-#endif
+  // 3) Comandos digitados (bancada e demonstracao) e diagnostico.
+  lerTeclado(agora);
 
   // 4) Sensor, maquina de estados e saida para os motores.
   bool obstaculo = sensor.atualizar(agora);
