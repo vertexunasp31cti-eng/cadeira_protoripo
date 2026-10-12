@@ -12,6 +12,9 @@ FONTES   := test_controle.cpp ../firmware/cadeira_voz/controle.cpp
 TRE_ALVO   := $(DIR)/compila_treinador
 TRE_FONTES := compila_treinador.cpp stub_arduino/Arduino.cpp
 
+VR3_ALVO   := $(DIR)/test_vr3
+VR3_FONTES := test_vr3.cpp stub_arduino/Arduino.cpp ../firmware/cadeira_voz/vr3.cpp
+
 VER_ALVO   := $(DIR)/compila_firmware
 VER_FONTES := compila_firmware.cpp stub_arduino/Arduino.cpp \
               ../firmware/cadeira_voz/controle.cpp \
@@ -27,8 +30,14 @@ $(ALVO): $(FONTES) ../firmware/cadeira_voz/controle.h
 	@mkdir -p $(DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(FONTES)
 
-rodar: $(ALVO)
+rodar: $(ALVO) $(VR3_ALVO)
 	@./$(ALVO)
+	@./$(VR3_ALVO)
+
+# Driver do modulo de voz contra um modulo V3 simulado.
+$(VR3_ALVO): $(VR3_FONTES) ../firmware/cadeira_voz/vr3.h
+	@mkdir -p $(DIR)
+	$(CXX) $(CXXFLAGS) -I stub_arduino -o $@ $(VR3_FONTES)
 
 # Compila o firmware inteiro no PC com o stub da API do Arduino.
 $(VER_ALVO): $(VER_FONTES)

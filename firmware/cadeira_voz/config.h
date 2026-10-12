@@ -60,7 +60,8 @@ const uint8_t NIVEL_BOTAO_ACIONADO = LOW;
 // Ligado na Serial1 do Mega: pino 19 (RX1) e pino 18 (TX1).
 // Atencao ao cruzamento: TX do modulo vai no RX1, RX do modulo vai no TX1.
 #define SERIAL_VOZ Serial1
-const long BAUD_VOZ = 9600;  // padrao de fabrica do modulo V3
+// O baud padrao do modulo V3 e 9600. O driver (vr3.cpp) tenta 9600 primeiro
+// e, se nao houver resposta, testa sozinho 19200, 38400, 4800 e 2400.
 
 // ---------------------------------------------------------------------------
 // Depuracao e simulacao

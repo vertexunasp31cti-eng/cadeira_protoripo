@@ -77,7 +77,7 @@ class Stream {
 
 class HardwareSerial : public Stream {
  public:
-  void begin(long) {}
+  virtual void begin(long) {}
 };
 
 extern HardwareSerial Serial;

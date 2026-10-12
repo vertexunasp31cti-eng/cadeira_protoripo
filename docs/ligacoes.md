@@ -38,9 +38,12 @@ de tempo, e toda a segurança do projeto depende de `millis()`.
 | RX  | 18 (TX1) | **cruzado**: RX do módulo no TX do Arduino |
 
 O erro mais comum de montagem é ligar TX no TX. O sintoma é a mensagem
-`modulo de voz nao respondeu` no Monitor Serial.
+`nenhum byte chegou do modulo` no Monitor Serial. Veja a tabela de
+diagnóstico em `docs/treinamento_vr3.md`.
 
-O módulo sai de fábrica em 9600 bps. Ele guarda até 80 registros gravados,
+O módulo sai de fábrica em 9600 bps. Se o baud tiver sido mudado por outro
+programa, o firmware encontra sozinho (testa 9600, 19200, 38400, 4800 e
+2400) e informa a velocidade no Monitor Serial. Ele guarda até 80 registros gravados,
 mas só reconhece 7 ao mesmo tempo, e é por isso que o projeto usa exatamente
 7 comandos.
 

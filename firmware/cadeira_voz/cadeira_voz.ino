@@ -186,6 +186,21 @@ void tratarComando(Comando c, unsigned long agora, const char* origem) {
   agendarBips(aceito ? 1 : 2);
 }
 
+// Mostra o que aconteceu com cada registro ao carregar o reconhecedor. Um
+// registro "NAO TREINADO" nunca sera reconhecido, mesmo com o modulo ligado.
+void mostrarRegistrosVoz() {
+  static const char* const PALAVRAS[CMD_TOTAL] = {
+      "frente", "tras", "esquerda", "direita", "parar", "rapido", "devagar"};
+  for (uint8_t i = 0; i < CMD_TOTAL; ++i) {
+    SERIAL_DEBUG.print(F("  registro "));
+    SERIAL_DEBUG.print((int)REGISTROS_VOZ[i]);
+    SERIAL_DEBUG.print(F(" ("));
+    SERIAL_DEBUG.print(PALAVRAS[i]);
+    SERIAL_DEBUG.print(F("): "));
+    SERIAL_DEBUG.println(nomeStatusRegistro(voz.statusRegistro(i)));
+  }
+}
+
 // ---------------------------------------------------------------------------
 void setup() {
   pinMode(PINO_BUZZER, OUTPUT);
@@ -198,7 +213,7 @@ void setup() {
   motores.iniciar();
 
   SERIAL_DEBUG.begin(BAUD_DEBUG);
-  SERIAL_VOZ.begin(BAUD_VOZ);
+  // A Serial1 e aberta pelo driver do modulo de voz, que procura o baud.
 #if USAR_ESP8266
   SERIAL_ESP.begin(BAUD_ESP);
 #endif
@@ -209,15 +224,30 @@ void setup() {
 
   mostrarAjuda();
 
+  SERIAL_DEBUG.println(F("Procurando o modulo de voz..."));
   voz_pronta = voz.iniciar(REGISTROS_VOZ, CMD_TOTAL);
+  if (voz.baud() > 0) {
+    SERIAL_DEBUG.print(F("Modulo de voz respondeu a "));
+    SERIAL_DEBUG.print(voz.baud());
+    SERIAL_DEBUG.println(F(" bps."));
+    mostrarRegistrosVoz();
+  }
   if (voz_pronta) {
-    SERIAL_DEBUG.println(F("Modulo de voz pronto: 7 registros carregados."));
+    SERIAL_DEBUG.print(F("Modulo de voz pronto: "));
+    SERIAL_DEBUG.print((int)voz.registrosCarregados());
+    SERIAL_DEBUG.println(F(" de 7 registros carregados."));
     bipDeInicializacao(120);
   } else {
     SERIAL_DEBUG.print(F("ATENCAO - modulo de voz indisponivel: "));
     SERIAL_DEBUG.println(voz.ultimoErro());
     SERIAL_DEBUG.print(F("  bytes recebidos do modulo: "));
-    SERIAL_DEBUG.println(voz.bytesRecebidos());
+    SERIAL_DEBUG.print(voz.bytesRecebidos());
+    for (uint8_t i = 0; i < voz.tamanhoAmostra(); ++i) {
+      SERIAL_DEBUG.print(' ');
+      if (voz.amostraBytes()[i] < 0x10) SERIAL_DEBUG.print('0');
+      SERIAL_DEBUG.print((int)voz.amostraBytes()[i], HEX);
+    }
+    SERIAL_DEBUG.println();
     SERIAL_DEBUG.println(F("  esperado: modulo TX no pino 19, RX no pino 18"));
 #if MODO_SIMULACAO
     SERIAL_DEBUG.println(F("Seguindo apenas com os comandos do teclado."));

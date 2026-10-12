@@ -126,6 +126,29 @@ void treinar(uint8_t registro) {
   Serial.println(F("  -> Sem resposta. Confira RX/TX cruzados e a alimentacao."));
 }
 
+// Procura o modulo nas velocidades que o V3 aceita. Retorna o baud em que
+// ele respondeu, ou 0. O padrao de fabrica e 9600, mas o baud fica gravado no
+// modulo e pode ter sido mudado por outro programa.
+long procurarModulo() {
+  static const long BAUDS[] = {9600, 19200, 38400, 4800, 2400};
+  for (uint8_t i = 0; i < sizeof(BAUDS) / sizeof(BAUDS[0]); ++i) {
+    SERIAL_VOZ.begin(BAUDS[i]);
+    delay(20);
+    for (uint8_t t = 0; t < (i == 0 ? 4 : 1); ++t) {
+      while (SERIAL_VOZ.available()) SERIAL_VOZ.read();
+      enviarComando(CMD_LIMPAR, NULL, 0);
+      unsigned long inicio = millis();
+      while ((millis() - inicio) < 400) {
+        if (receberQuadro(400 - (millis() - inicio)) == 0) break;
+        if (quadro[2] == CMD_LIMPAR) return BAUDS[i];
+      }
+      delay(250);
+    }
+  }
+  SERIAL_VOZ.begin(9600);
+  return 0;
+}
+
 void carregar() {
   uint8_t registros[7] = {0, 1, 2, 3, 4, 5, 6};
 
@@ -136,13 +159,51 @@ void carregar() {
     return;
   }
   enviarComando(CMD_CARREGAR, registros, 7);
-  if (receberQuadro(1000) == 0) {
+  bool achou = false;
+  unsigned long inicio = millis();
+  while (!achou && (millis() - inicio) < 1000) {
+    if (receberQuadro(1000) == 0) break;
+    achou = (quadro[2] == CMD_CARREGAR);
+  }
+  if (!achou) {
     Serial.println(F("Sem resposta ao carregar os registros."));
     return;
   }
   mostrarQuadro();
-  Serial.println(F("Registros 0 a 6 carregados. Modo de escuta ligado:"));
-  Serial.println(F("fale as palavras e confira se o numero certo aparece."));
+
+  // Quadro: AA LEN 30 N R0 STA0 R1 STA1 ... 0A
+  uint8_t fim = quadro[1] + 1;
+  uint8_t carregados = 0;
+  for (uint8_t p = 4; p + 1 < fim; p += 2) {
+    uint8_t reg = quadro[p];
+    uint8_t sta = quadro[p + 1];
+    Serial.print(F("  registro "));
+    Serial.print(reg);
+    if (reg < 7) {
+      Serial.print(F(" ("));
+      Serial.print(PALAVRAS[reg]);
+      Serial.print(')');
+    }
+    Serial.print(F(": "));
+    if (sta == 0x00 || sta == 0xFC) {
+      Serial.println(F("carregado"));
+      ++carregados;
+    } else if (sta == 0xFE) {
+      Serial.println(F("NAO TREINADO - grave este registro"));
+    } else if (sta == 0xFF) {
+      Serial.println(F("fora da faixa"));
+    } else {
+      Serial.print(F("status 0x"));
+      Serial.println(sta, HEX);
+    }
+  }
+
+  if (carregados == 0) {
+    Serial.println(F("Nenhum registro treinado. Grave de 0 a 6 antes."));
+    return;
+  }
+  Serial.println(F("Modo de escuta ligado: fale as palavras e confira se o"));
+  Serial.println(F("numero certo aparece."));
   escutando = true;
 }
 
@@ -172,16 +233,29 @@ void menu() {
   Serial.println(F("         0 frente   1 tras     2 esquerda"));
   Serial.println(F("         3 direita  4 parar    5 rapido"));
   Serial.println(F("         6 devagar"));
-  Serial.println(F("  l     carrega os 7 registros e entra em escuta"));
+  Serial.println(F("  l     mostra quais registros estao gravados,"));
+  Serial.println(F("        carrega os 7 e entra em escuta"));
   Serial.println(F("  ?     mostra este menu"));
   Serial.println(F("---------------------------------------------------"));
 }
 
 void setup() {
   Serial.begin(115200);
-  SERIAL_VOZ.begin(9600);
   delay(300);
   menu();
+
+  Serial.println(F("Procurando o modulo de voz..."));
+  long baud = procurarModulo();
+  if (baud > 0) {
+    Serial.print(F("Modulo encontrado a "));
+    Serial.print(baud);
+    Serial.println(F(" bps. Digite l para ver quais registros estao gravados."));
+  } else {
+    Serial.println(F("Modulo NAO respondeu em nenhuma velocidade."));
+    Serial.println(F("  - TX do modulo no pino 19 e RX no pino 18 (cruzado)?"));
+    Serial.println(F("  - VCC em 5V e GND ligado ao GND do Mega?"));
+    Serial.println(F("  - LED do modulo aceso?"));
+  }
 }
 
 void loop() {
