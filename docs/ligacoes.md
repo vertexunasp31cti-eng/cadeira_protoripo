@@ -20,6 +20,20 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 Retire os jumpers de ENA e ENB. Com eles instalados a placa ignora o PWM e
 os motores só funcionam em velocidade máxima.
 
+Cada jumper fica sobre **dois** pinos. Um deles é o ENA (ou ENB) de
+verdade, que vai para o chip. O outro é só uma saída de +5 V. O fio do
+Arduino tem que ir no pino ENA/ENB, nunca no de +5 V: ligado no pino errado,
+o ENA fica solto e a roda nunca gira. Na maioria dos módulos o pino certo é
+o mais perto do chip; confira a serigrafia da sua placa.
+
+Teste rápido quando nada gira: recoloque o jumper e digite `m`. Se com o
+jumper a roda gira e sem ele não gira, o fio do pino 5 ou 6 está no pino
+errado do cabeçote, solto ou partido.
+
+Atenção também ao bloco duplo do fim do Mega: os pinos 32, 33, 34 e 35 ficam
+lado a lado em duas fileiras (pares de um lado, ímpares do outro). É fácil
+trocar um fio de lugar. Confira com calma: IN1→35, IN2→33, IN3→34, IN4→32.
+
 Os pinos de 32 a 35 não têm PWM, e não precisam ter: eles só definem o
 sentido de giro, com nível alto ou baixo. Quem controla a velocidade é o par
 ENA e ENB, e esses dois precisam de pino PWM.
@@ -154,7 +168,7 @@ para parar.
   |  máquina de estados +         |
   |  travas de segurança          |<------| Botão emergência (3)|
   +-------------------------------+
-            | PWM 5/6  + sentido 22..25
+            | PWM 5/6  + sentido 32..35
             v
   +---------------------+        +------------------------+
   | Ponte H L298N       |------->| 2 motores DC + rodas   |

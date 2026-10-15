@@ -136,8 +136,12 @@ casos que deixam a cadeira parada:
 - `sensor IR (pino 2): OBSTACULO`: o `frente` é recusado com dois bipes.
   Ajuste o trimpot do sensor ou confira a fiação.
 - Tudo livre, a telemetria mostra `pwm=130/130`, mas a roda não gira: o
-  problema é de potência. Use `m` para confirmar e confira a bateria do
-  L298N, o GND comum e os jumpers de ENA e ENB.
+  problema é de potência ou de fiação depois do Arduino. Use `m` para
+  confirmar e confira a bateria do L298N, o GND comum e os fios de ENA e
+  ENB (veja `docs/ligacoes.md`, seção 1).
+- Nada aparece no Monitor Serial, nem o menu: confira se gravou o firmware
+  `cadeira_voz` e não a ferramenta `treinar_voz`, e se o Monitor está em
+  115200.
 
 ## Testes automatizados
 

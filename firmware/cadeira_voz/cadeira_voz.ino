@@ -44,6 +44,7 @@ VR3 voz(SERIAL_VOZ);
 
 bool voz_pronta = false;
 unsigned long t_aviso_emergencia = 0;
+bool em_emergencia = false;
 
 void tratarComando(Comando c, unsigned long agora, const char* origem);
 unsigned long t_telemetria = 0;
@@ -369,15 +370,29 @@ void loop() {
   // 1) Botao fisico de emergencia tem prioridade sobre qualquer comando.
   //    Avisa pela serial a cada 2 s, senao a cadeira parece travada sem
   //    motivo: nessa situacao nenhum comando nem a telemetria sao atendidos.
+  //    Tudo que chegar pela voz ou pelo teclado durante a emergencia e
+  //    descartado. Sem isso o comando ficaria na fila da serial e a cadeira
+  //    partiria sozinha no instante em que o botao fosse solto.
   if (emergenciaAcionada()) {
     controle.pararEmergencia(agora);
     motores.aplicar(0, 0);
     digitalWrite(PINO_LED, HIGH);
+    while (SERIAL_DEBUG.available()) SERIAL_DEBUG.read();
+    if (voz_pronta) {
+      while (voz.lerReconhecimento() >= 0) {
+      }
+    }
+    em_emergencia = true;
     if (agora - t_aviso_emergencia >= 2000) {
       t_aviso_emergencia = agora;
       SERIAL_DEBUG.println(F("EMERGENCIA: pino 3 em GND, comandos ignorados."));
     }
     return;
+  }
+  if (em_emergencia) {
+    em_emergencia = false;
+    SERIAL_DEBUG.println(F("Emergencia liberada. A cadeira so anda com um "
+                           "comando novo."));
   }
 
   // 2) Comandos de voz.

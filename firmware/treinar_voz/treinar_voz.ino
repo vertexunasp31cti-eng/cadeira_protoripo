@@ -19,7 +19,11 @@
  * ===========================================================================
  */
 
+#include <string.h>
+
+#ifndef SERIAL_VOZ
 #define SERIAL_VOZ Serial1
+#endif
 
 static const uint8_t QUADRO_INICIO = 0xAA;
 static const uint8_t QUADRO_FIM = 0x0A;
@@ -27,6 +31,7 @@ static const uint8_t CMD_TREINAR = 0x20;
 static const uint8_t CMD_CARREGAR = 0x30;
 static const uint8_t CMD_LIMPAR = 0x31;
 static const uint8_t CMD_RESULTADO = 0x0D;
+static const uint8_t CMD_AVISO = 0x0A;  // texto do modulo durante o treino
 
 static const char* const PALAVRAS[7] = {"frente", "tras",   "esquerda",
                                         "direita", "parar", "rapido",
@@ -35,6 +40,10 @@ static const char* const PALAVRAS[7] = {"frente", "tras",   "esquerda",
 uint8_t quadro[32];
 uint8_t quadro_tam = 0;
 bool escutando = false;
+
+// Montagem nao bloqueante usada no modo de escuta (veja montarQuadro).
+uint8_t escuta_buf[32];
+uint8_t escuta_n = 0;
 
 // ---------------------------------------------------------------------------
 void enviarComando(uint8_t cmd, const uint8_t* dados, uint8_t n) {
@@ -83,6 +92,33 @@ void mostrarQuadro() {
   Serial.println();
 }
 
+// Durante o treino o modulo manda avisos em texto, em ingles:
+//   AA LEN 0A registro "Speak now" 0A
+// Mostrar esse texto e o que diz ao usuario a hora certa de falar.
+void mostrarAviso() {
+  char texto[28];
+  uint8_t n = 0;
+  for (uint8_t i = 4; i < (uint8_t)(quadro[1] + 1) && n < sizeof(texto) - 1; ++i) {
+    texto[n++] = (char)quadro[i];
+  }
+  texto[n] = '\0';
+
+  Serial.print(F("  modulo: \""));
+  Serial.print(texto);
+  Serial.print(F("\"  -> "));
+  if (strstr(texto, "again")) {
+    Serial.println(F("FALE A PALAVRA DE NOVO, igual a primeira vez"));
+  } else if (strstr(texto, "now") || strstr(texto, "Speak")) {
+    Serial.println(F("FALE A PALAVRA AGORA"));
+  } else if (strstr(texto, "uccess")) {
+    Serial.println(F("deu certo"));
+  } else if (strstr(texto, "atch")) {
+    Serial.println(F("as duas falas sairam diferentes"));
+  } else {
+    Serial.println();
+  }
+}
+
 // ---------------------------------------------------------------------------
 void treinar(uint8_t registro) {
   if (registro > 6) {
@@ -102,9 +138,14 @@ void treinar(uint8_t registro) {
   uint8_t dados[1] = {registro};
   enviarComando(CMD_TREINAR, dados, 1);
 
+  // O usuario pode demorar para falar as duas vezes: espera ate 30 s.
   unsigned long inicio = millis();
-  while ((millis() - inicio) < 15000) {
+  while ((millis() - inicio) < 30000) {
     if (receberQuadro(15000) == 0) break;
+    if (quadro[2] == CMD_AVISO) {
+      mostrarAviso();
+      continue;
+    }
     mostrarQuadro();
     if (quadro[2] != CMD_TREINAR) continue;
     if (quadro[1] < 5) continue;          // quadro de abertura
@@ -138,8 +179,10 @@ long procurarModulo() {
       while (SERIAL_VOZ.available()) SERIAL_VOZ.read();
       enviarComando(CMD_LIMPAR, NULL, 0);
       unsigned long inicio = millis();
-      while ((millis() - inicio) < 400) {
-        if (receberQuadro(400 - (millis() - inicio)) == 0) break;
+      for (;;) {
+        unsigned long passou = millis() - inicio;
+        if (passou >= 400) break;
+        if (receberQuadro(400 - passou) == 0) break;
         if (quadro[2] == CMD_LIMPAR) return BAUDS[i];
       }
       delay(250);
@@ -204,12 +247,45 @@ void carregar() {
   }
   Serial.println(F("Modo de escuta ligado: fale as palavras e confira se o"));
   Serial.println(F("numero certo aparece."));
+  escuta_n = 0;
   escutando = true;
+}
+
+// Monta um quadro aos poucos, sem bloquear. A 9600 bps um quadro de
+// resultado leva cerca de 10 ms para chegar inteiro, entao ele precisa ser
+// juntado ao longo de varias voltas do loop(), sem perder o que ja chegou.
+bool montarQuadro() {
+  while (SERIAL_VOZ.available()) {
+    uint8_t b = (uint8_t)SERIAL_VOZ.read();
+    if (escuta_n == 0) {
+      if (b == QUADRO_INICIO) escuta_buf[escuta_n++] = b;
+      continue;
+    }
+    if (escuta_n == 1) {
+      if (b < 2 || b > (uint8_t)(sizeof(escuta_buf) - 2)) {
+        escuta_n = 0;
+        continue;
+      }
+      escuta_buf[escuta_n++] = b;
+      continue;
+    }
+    escuta_buf[escuta_n++] = b;
+    if (escuta_n >= (uint8_t)(escuta_buf[1] + 2)) {
+      bool ok = (escuta_buf[escuta_buf[1] + 1] == QUADRO_FIM);
+      if (ok) {
+        memcpy(quadro, escuta_buf, escuta_n);
+        quadro_tam = escuta_n;
+      }
+      escuta_n = 0;
+      if (ok) return true;
+    }
+  }
+  return false;
 }
 
 void escutar() {
   if (!escutando) return;
-  if (receberQuadro(5) == 0) return;
+  if (!montarQuadro()) return;
   if (quadro[2] != CMD_RESULTADO || quadro[1] < 6) return;
 
   uint8_t registro = quadro[5];
@@ -235,15 +311,12 @@ void menu() {
   Serial.println(F("         6 devagar"));
   Serial.println(F("  l     mostra quais registros estao gravados,"));
   Serial.println(F("        carrega os 7 e entra em escuta"));
+  Serial.println(F("  b     procura o modulo de novo (depois de mexer nos fios)"));
   Serial.println(F("  ?     mostra este menu"));
   Serial.println(F("---------------------------------------------------"));
 }
 
-void setup() {
-  Serial.begin(115200);
-  delay(300);
-  menu();
-
+void buscarModulo() {
   Serial.println(F("Procurando o modulo de voz..."));
   long baud = procurarModulo();
   if (baud > 0) {
@@ -255,7 +328,15 @@ void setup() {
     Serial.println(F("  - TX do modulo no pino 19 e RX no pino 18 (cruzado)?"));
     Serial.println(F("  - VCC em 5V e GND ligado ao GND do Mega?"));
     Serial.println(F("  - LED do modulo aceso?"));
+    Serial.println(F("Arrume e digite b para procurar de novo."));
   }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  menu();
+  buscarModulo();
 }
 
 void loop() {
@@ -266,6 +347,9 @@ void loop() {
       treinar((uint8_t)(c - '0'));
     } else if (c == 'l' || c == 'L') {
       carregar();
+    } else if (c == 'b' || c == 'B') {
+      escutando = false;
+      buscarModulo();
     } else if (c == '?') {
       menu();
     }
