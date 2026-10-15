@@ -26,8 +26,8 @@ const uint8_t PINO_IN4 = 32;
 // sentido de giro. Quem controla a velocidade e ENA/ENB, que precisam
 // obrigatoriamente de pinos PWM.
 
-// Se uma roda girar ao contrario do esperado, troque para true em vez de
-// inverter os fios no L298N.
+// Se uma roda girar ao contrario do esperado, troque para true OU inverta os
+// dois fios do motor no L298N. Nunca as duas coisas: elas se anulam.
 const bool INVERTER_MOTOR_ESQ = false;
 const bool INVERTER_MOTOR_DIR = false;
 

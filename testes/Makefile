@@ -49,7 +49,7 @@ $(VR3_ALVO): $(VR3_FONTES) ../firmware/cadeira_voz/vr3.h
 	$(CXX) $(CXXFLAGS) -I stub_arduino -o $@ $(VR3_FONTES)
 
 # Compila o firmware inteiro no PC com o stub da API do Arduino.
-$(VER_ALVO): $(VER_FONTES)
+$(VER_ALVO): $(VER_FONTES) $(wildcard ../firmware/cadeira_voz/*.ino ../firmware/cadeira_voz/*.h)
 	@mkdir -p $(DIR)
 	$(CXX) $(CXXFLAGS) -I stub_arduino -x c++ -o $@ $(VER_FONTES)
 

@@ -54,9 +54,11 @@ Suspenda o carrinho com as rodas no ar. Envie o firmware principal e use o
 Monitor Serial em 115200 com as teclas `f`, `t`, `e`, `d`, `p`.
 
 - As duas rodas giram para o mesmo lado no comando `f`.
-- Se uma girar ao contrário, mude `INVERTER_MOTOR_ESQ` ou
-  `INVERTER_MOTOR_DIR` em `config.h`, em vez de trocar os fios.
-- Se nada girar, confira se os jumpers de ENA e ENB foram retirados.
+- Se uma girar ao contrário, troque os dois fios desse motor no L298N ou
+  mude `INVERTER_MOTOR_ESQ`/`INVERTER_MOTOR_DIR` em `config.h`. Faça só uma
+  das duas coisas: as duas juntas se anulam.
+- Se nada girar, confira os jumpers de ENA e ENB: colocados sem fio nos
+  pinos 5 e 6, ou retirados com fio 5→ENA e 6→ENB (`docs/ligacoes.md`).
 
 ### Etapa 2: velocidade mínima
 

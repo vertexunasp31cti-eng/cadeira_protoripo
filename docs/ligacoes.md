@@ -17,18 +17,29 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 | OUT1/OUT2 | motor esquerdo | |
 | OUT3/OUT4 | motor direito  | |
 
-Retire os jumpers de ENA e ENB. Com eles instalados a placa ignora o PWM e
-os motores só funcionam em velocidade máxima.
+Os pinos ENA e ENB controlam a velocidade, e há duas montagens possíveis.
+Use uma ou a outra, nunca as duas juntas:
+
+- **Jumpers colocados, nada nos pinos 5 e 6.** Os motores andam sempre na
+  velocidade máxima, mas frente, ré, giro e parada funcionam. É a montagem
+  mais simples para o primeiro teste.
+- **Jumpers retirados, fio 5→ENA e 6→ENB.** Com isso funcionam o controle de
+  velocidade (`rápido` e `devagar`) e a rampa de partida.
 
 Cada jumper fica sobre **dois** pinos. Um deles é o ENA (ou ENB) de
-verdade, que vai para o chip. O outro é só uma saída de +5 V. O fio do
-Arduino tem que ir no pino ENA/ENB, nunca no de +5 V: ligado no pino errado,
-o ENA fica solto e a roda nunca gira. Na maioria dos módulos o pino certo é
-o mais perto do chip; confira a serigrafia da sua placa.
+verdade, que vai para o chip. O outro é uma saída de +5 V do próprio L298N.
+O fio do Arduino tem que ir no pino ENA/ENB. Se ele cair no pino de +5 V, a
+saída do Arduino fica em curto com o regulador do L298N e o pino 5 ou 6 pode
+queimar. A posição muda de um módulo para outro, então descubra com o
+multímetro em vez de chutar: tudo desligado (sem bateria e sem USB),
+multímetro em continuidade, uma ponta no parafuso do borne 5V do L298N e a
+outra em cada pino do cabeçote. O que apitar é o +5 V. O outro é o ENA.
 
-Teste rápido quando nada gira: recoloque o jumper e digite `m`. Se com o
-jumper a roda gira e sem ele não gira, o fio do pino 5 ou 6 está no pino
-errado do cabeçote, solto ou partido.
+Nunca recoloque o jumper com o fio do Arduino ainda ligado no cabeçote: o
+jumper liga o ENA ao +5 V, e o pino do Arduino fica em curto do mesmo jeito.
+Para testar se o problema é o fio, tire o fio do pino 5 ou 6, recoloque o
+jumper e digite `m`. Se assim a roda gira e com o fio não, o fio está no
+pino errado do cabeçote, solto ou partido.
 
 Atenção também ao bloco duplo do fim do Mega: os pinos 32, 33, 34 e 35 ficam
 lado a lado em duas fileiras (pares de um lado, ímpares do outro). É fácil

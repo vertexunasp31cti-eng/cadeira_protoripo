@@ -72,7 +72,8 @@ docs/                     ligações, treinamento, ensaios e apoio ao TCC
 
 Siga `docs/ligacoes.md`. Preste atenção em três pontos que costumam dar
 errado: o TX do módulo de voz vai no RX do Arduino, os jumpers de ENA e ENB
-do L298N precisam ser retirados, e os dois circuitos precisam de terra
+do L298N ficam colocados (sem fio nos pinos 5 e 6) ou retirados (com fio
+5→ENA e 6→ENB), nunca as duas coisas, e os dois circuitos precisam de terra
 comum.
 
 ### 2. Treinar os comandos
