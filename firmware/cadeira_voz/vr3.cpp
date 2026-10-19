@@ -155,7 +155,7 @@ bool VR3::iniciar(const uint8_t* registros, uint8_t quantidade) {
   }
 
   if (carregados_ == 0) {
-    erro_ = "o modulo responde, mas nenhum registro esta treinado (rode a "
+    erro_ = "o modulo responde, mas nenhum numero esta gravado (rode a "
             "ferramenta treinar_voz)";
     return false;
   }
@@ -257,7 +257,7 @@ const char* nomeStatusRegistro(StatusRegistro s) {
     case REG_CARREGADO: return "carregado";
     case REG_JA_CARREGADO: return "carregado";
     case REG_RECONHECEDOR_CHEIO: return "reconhecedor cheio";
-    case REG_NAO_TREINADO: return "NAO TREINADO";
+    case REG_NAO_TREINADO: return "NAO GRAVADO";
     case REG_FORA_DA_FAIXA: return "fora da faixa";
     default: return "sem resposta";
   }

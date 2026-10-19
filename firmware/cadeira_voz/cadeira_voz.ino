@@ -11,9 +11,10 @@
  *    - Sensor de obstaculo reflexivo infravermelho
  *    - 2x motor DC 3-6V com roda de 68 mm
  *
- *  Comandos de voz (numero do registro gravado no modulo):
- *    0 "frente"    1 "tras"      2 "esquerda"   3 "direita"
- *    4 "parar"     5 "rapido"    6 "devagar"
+ *  Comandos de voz: numeros falados, gravados com a ferramenta treinar_voz.
+ *    "um" frente     "dois" tras      "tres" esquerda   "quatro" direita
+ *    "cinco" parar   "seis" rapido    "sete" devagar
+ *  O numero falado N fica no registro N-1 do modulo (um = registro 0).
  *
  *  Camadas de seguranca implementadas:
  *    1. Sensor IR para a cadeira e recusa novos comandos de avanco.
@@ -125,6 +126,14 @@ Comando comandoDaTecla(char c) {
     case 'p': case 'P': case ' ': return CMD_PARAR;
     case '+': return CMD_RAPIDO;
     case '-': return CMD_DEVAGAR;
+    // Os mesmos numeros da voz: 1 frente, 2 tras ... 7 devagar.
+    case '1': return CMD_FRENTE;
+    case '2': return CMD_RE;
+    case '3': return CMD_ESQUERDA;
+    case '4': return CMD_DIREITA;
+    case '5': return CMD_PARAR;
+    case '6': return CMD_RAPIDO;
+    case '7': return CMD_DEVAGAR;
     default: return CMD_NENHUM;
   }
 }
@@ -235,10 +244,12 @@ void mostrarAjuda() {
   SERIAL_DEBUG.println(F("==================================================="));
   SERIAL_DEBUG.println(F(" Cadeira de rodas com comando de voz - prototipo"));
   SERIAL_DEBUG.println(F("==================================================="));
-  SERIAL_DEBUG.println(F(" Palavras: frente | tras | esquerda | direita |"));
-  SERIAL_DEBUG.println(F("           parar | rapido | devagar"));
+  SERIAL_DEBUG.println(F(" Fale:     um=frente  dois=tras  tres=esquerda"));
+  SERIAL_DEBUG.println(F("           quatro=direita  cinco=parar"));
+  SERIAL_DEBUG.println(F("           seis=rapido  sete=devagar"));
 #if MODO_SIMULACAO
-  SERIAL_DEBUG.println(F(" Teclado:  f t e d p (espaco=parar) + -"));
+  SERIAL_DEBUG.println(F(" Teclado:  1 a 7 (os mesmos numeros), ou"));
+  SERIAL_DEBUG.println(F("           f t e d p (espaco=parar) + -"));
 #endif
   SERIAL_DEBUG.println(F("           ? diagnostico   m testa os motores"));
   SERIAL_DEBUG.println(F(" Cada comando de movimento dura 3 s: repita para"));
@@ -292,15 +303,19 @@ void tratarComando(Comando c, unsigned long agora, const char* origem) {
 }
 
 // Mostra o que aconteceu com cada registro ao carregar o reconhecedor. Um
-// registro "NAO TREINADO" nunca sera reconhecido, mesmo com o modulo ligado.
+// numero "NAO GRAVADO" nunca sera reconhecido, mesmo com o modulo ligado.
 void mostrarRegistrosVoz() {
-  static const char* const PALAVRAS[CMD_TOTAL] = {
+  static const char* const FALAS[CMD_TOTAL] = {
+      "um", "dois", "tres", "quatro", "cinco", "seis", "sete"};
+  static const char* const ACOES[CMD_TOTAL] = {
       "frente", "tras", "esquerda", "direita", "parar", "rapido", "devagar"};
   for (uint8_t i = 0; i < CMD_TOTAL; ++i) {
-    SERIAL_DEBUG.print(F("  registro "));
-    SERIAL_DEBUG.print((int)REGISTROS_VOZ[i]);
-    SERIAL_DEBUG.print(F(" ("));
-    SERIAL_DEBUG.print(PALAVRAS[i]);
+    SERIAL_DEBUG.print(F("  numero "));
+    SERIAL_DEBUG.print((int)(i + 1));
+    SERIAL_DEBUG.print(F(" \""));
+    SERIAL_DEBUG.print(FALAS[i]);
+    SERIAL_DEBUG.print(F("\" ("));
+    SERIAL_DEBUG.print(ACOES[i]);
     SERIAL_DEBUG.print(F("): "));
     SERIAL_DEBUG.println(nomeStatusRegistro(voz.statusRegistro(i)));
   }

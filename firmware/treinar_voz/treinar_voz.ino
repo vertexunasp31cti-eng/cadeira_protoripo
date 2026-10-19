@@ -13,9 +13,13 @@
  *      modulo TX  -> pino 19 (RX1)
  *      modulo RX  -> pino 18 (TX1)
  *
- *  Ordem dos registros esperada pelo firmware:
- *      0 frente | 1 tras | 2 esquerda | 3 direita
- *      4 parar  | 5 rapido | 6 devagar
+ *  Os comandos sao numeros falados. Voce digita o numero e fala o mesmo
+ *  numero: digita 1 e fala "um", e isso vira o comando frente.
+ *      1 um = frente   | 2 dois = tras    | 3 tres  = esquerda
+ *      4 quatro = direita | 5 cinco = parar | 6 seis = rapido
+ *      7 sete = devagar
+ *  Por dentro, o numero 1 fica no registro 0 do modulo, o 2 no registro 1, e
+ *  assim por diante, que e a ordem que o firmware da cadeira espera.
  * ===========================================================================
  */
 
@@ -33,9 +37,11 @@ static const uint8_t CMD_LIMPAR = 0x31;
 static const uint8_t CMD_RESULTADO = 0x0D;
 static const uint8_t CMD_AVISO = 0x0A;  // texto do modulo durante o treino
 
-static const char* const PALAVRAS[7] = {"frente", "tras",   "esquerda",
-                                        "direita", "parar", "rapido",
-                                        "devagar"};
+// O que se fala para cada registro, e o comando que ele vira na cadeira.
+static const char* const FALAS[7] = {"um",    "dois", "tres", "quatro",
+                                     "cinco", "seis", "sete"};
+static const char* const ACOES[7] = {"frente", "tras",   "esquerda", "direita",
+                                     "parar",  "rapido", "devagar"};
 
 uint8_t quadro[32];
 uint8_t quadro_tam = 0;
@@ -110,6 +116,8 @@ void mostrarAviso() {
     Serial.println(F("FALE A PALAVRA DE NOVO, igual a primeira vez"));
   } else if (strstr(texto, "now") || strstr(texto, "Speak")) {
     Serial.println(F("FALE A PALAVRA AGORA"));
+  } else if (strstr(texto, "ailed")) {
+    Serial.println(F("nao gravou (veja o motivo abaixo)"));
   } else if (strstr(texto, "uccess")) {
     Serial.println(F("deu certo"));
   } else if (strstr(texto, "atch")) {
@@ -121,19 +129,33 @@ void mostrarAviso() {
   }
 }
 
+// Mostra um registro do jeito que o usuario conhece, por exemplo:
+//   numero 1 "um" (frente)
+void mostrarNumero(uint8_t registro) {
+  Serial.print(F("numero "));
+  Serial.print(registro + 1);
+  if (registro < 7) {
+    Serial.print(F(" \""));
+    Serial.print(FALAS[registro]);
+    Serial.print(F("\" ("));
+    Serial.print(ACOES[registro]);
+    Serial.print(')');
+  }
+}
+
 // ---------------------------------------------------------------------------
 void treinar(uint8_t registro) {
   if (registro > 6) {
-    Serial.println(F("Use um registro de 0 a 6."));
+    Serial.println(F("Use um numero de 1 a 7."));
     return;
   }
 
-  Serial.print(F("\nTreinando registro "));
-  Serial.print(registro);
-  Serial.print(F(" = \""));
-  Serial.print(PALAVRAS[registro]);
-  Serial.println(F("\""));
-  Serial.println(F("Fale a palavra quando o modulo pedir. Ele pede DUAS vezes."));
+  Serial.print(F("\nGravando o "));
+  mostrarNumero(registro);
+  Serial.println();
+  Serial.print(F("Quando o modulo pedir, fale \""));
+  Serial.print(FALAS[registro]);
+  Serial.println(F("\". Ele pede DUAS vezes."));
   Serial.println(F("Fale sempre do mesmo jeito, mesma distancia e mesmo tom."));
 
   while (SERIAL_VOZ.available()) SERIAL_VOZ.read();
@@ -233,19 +255,14 @@ void carregar() {
   for (uint8_t p = 4; p + 1 < fim; p += 2) {
     uint8_t reg = quadro[p];
     uint8_t sta = quadro[p + 1];
-    Serial.print(F("  registro "));
-    Serial.print(reg);
-    if (reg < 7) {
-      Serial.print(F(" ("));
-      Serial.print(PALAVRAS[reg]);
-      Serial.print(')');
-    }
+    Serial.print(F("  "));
+    mostrarNumero(reg);
     Serial.print(F(": "));
     if (sta == 0x00 || sta == 0xFC) {
       Serial.println(F("carregado"));
       ++carregados;
     } else if (sta == 0xFE) {
-      Serial.println(F("NAO TREINADO - grave este registro"));
+      Serial.println(F("NAO GRAVADO - grave este numero"));
     } else if (sta == 0xFF) {
       Serial.println(F("fora da faixa"));
     } else {
@@ -255,11 +272,11 @@ void carregar() {
   }
 
   if (carregados == 0) {
-    Serial.println(F("Nenhum registro treinado. Grave de 0 a 6 antes."));
+    Serial.println(F("Nenhum numero gravado. Grave de 1 a 7 antes."));
     return;
   }
-  Serial.println(F("Modo de escuta ligado: fale as palavras e confira se o"));
-  Serial.println(F("numero certo aparece."));
+  Serial.println(F("Modo de escuta ligado: fale os numeros e confira se o"));
+  Serial.println(F("comando certo aparece."));
   escuta_n = 0;
   escutando = true;
 }
@@ -302,13 +319,8 @@ void escutar() {
   if (quadro[2] != CMD_RESULTADO || quadro[1] < 6) return;
 
   uint8_t registro = quadro[5];
-  Serial.print(F("reconhecido: registro "));
-  Serial.print(registro);
-  if (registro < 7) {
-    Serial.print(F("  = \""));
-    Serial.print(PALAVRAS[registro]);
-    Serial.print(F("\""));
-  }
+  Serial.print(F("reconhecido: "));
+  mostrarNumero(registro);
   Serial.println();
 }
 
@@ -318,11 +330,12 @@ void menu() {
   Serial.println(F("==================================================="));
   Serial.println(F(" Treinamento do modulo de voz V3"));
   Serial.println(F("==================================================="));
-  Serial.println(F("  0..6  treina o registro (fale a palavra 2 vezes)"));
-  Serial.println(F("         0 frente   1 tras     2 esquerda"));
-  Serial.println(F("         3 direita  4 parar    5 rapido"));
-  Serial.println(F("         6 devagar"));
-  Serial.println(F("  l     mostra quais registros estao gravados,"));
+  Serial.println(F("  1..7  grava o numero (fale o mesmo numero, 2 vezes)"));
+  Serial.println(F("          1 um     = frente     2 dois   = tras"));
+  Serial.println(F("          3 tres   = esquerda   4 quatro = direita"));
+  Serial.println(F("          5 cinco  = parar      6 seis   = rapido"));
+  Serial.println(F("          7 sete   = devagar"));
+  Serial.println(F("  l     mostra quais numeros estao gravados,"));
   Serial.println(F("        carrega os 7 e entra em escuta"));
   Serial.println(F("  b     procura o modulo de novo (depois de mexer nos fios)"));
   Serial.println(F("  ?     mostra este menu"));
@@ -335,7 +348,7 @@ void buscarModulo() {
   if (baud > 0) {
     Serial.print(F("Modulo encontrado a "));
     Serial.print(baud);
-    Serial.println(F(" bps. Digite l para ver quais registros estao gravados."));
+    Serial.println(F(" bps. Digite l para ver quais numeros estao gravados."));
   } else {
     Serial.println(F("Modulo NAO respondeu em nenhuma velocidade."));
     Serial.println(F("  - TX do modulo no pino 19 e RX no pino 18 (cruzado)?"));
@@ -365,9 +378,11 @@ void setup() {
 void loop() {
   if (Serial.available()) {
     char c = (char)Serial.read();
-    if (c >= '0' && c <= '6') {
+    if (c >= '1' && c <= '7') {
       escutando = false;
-      treinar((uint8_t)(c - '0'));
+      treinar((uint8_t)(c - '1'));
+    } else if (c == '0' || c == '8' || c == '9') {
+      Serial.println(F("Use os numeros de 1 a 7."));
     } else if (c == 'l' || c == 'L') {
       carregar();
     } else if (c == 'b' || c == 'B') {

@@ -135,8 +135,8 @@ int main() {
     VR3 v(m);
     confere(!v.iniciar(REGS, 7), "sem nenhum registro treinado, falha");
     confere(v.baud() == 9600, "mas o modulo foi encontrado");
-    confere(strstr(v.ultimoErro(), "treinado") != NULL,
-            "a mensagem diz que falta treinar");
+    confere(strstr(v.ultimoErro(), "gravado") != NULL,
+            "a mensagem diz que falta gravar");
   }
   {
     ModuloSimulado m(9600, false);

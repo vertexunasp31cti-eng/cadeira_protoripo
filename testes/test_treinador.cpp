@@ -210,11 +210,11 @@ int main() {
   comecarCaptura();
   carregar();
   saida = terminarCaptura();
-  confere(tem(saida, "registro 3 (direita): carregado"),
+  confere(tem(saida, "numero 4 \"quatro\" (direita): carregado"),
           "lista o registro gravado como carregado");
-  confere(tem(saida, "registro 1 (tras): carregado"),
+  confere(tem(saida, "numero 2 \"dois\" (tras): carregado"),
           "o registro gravado depois de varias tentativas tambem carrega");
-  confere(tem(saida, "registro 0 (frente): NAO TREINADO"),
+  confere(tem(saida, "numero 1 \"um\" (frente): NAO GRAVADO"),
           "lista o registro vazio como nao treinado");
   confere(escutando, "entra no modo de escuta");
 
@@ -225,7 +225,7 @@ int main() {
     escutar();
   }
   saida = terminarCaptura();
-  confere(tem(saida, "reconhecido: registro 3"),
+  confere(tem(saida, "reconhecido: numero 4 \"quatro\" (direita)"),
           "modo de escuta mostra a palavra que chega aos poucos");
 
   if (falhas) {

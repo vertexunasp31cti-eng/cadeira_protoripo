@@ -18,15 +18,22 @@ servidor.
 
 ## Comandos de voz
 
-| Registro | Palavra | O que faz |
-|----------|---------|-----------|
-| 0 | frente | anda para frente até parar |
-| 1 | trás | anda para trás até parar |
-| 2 | esquerda | gira à esquerda por um tempo curto |
-| 3 | direita | gira à direita por um tempo curto |
-| 4 | parar | para imediatamente |
-| 5 | rápido | sobe um nível de velocidade |
-| 6 | devagar | desce um nível de velocidade |
+Os comandos são números falados. Na gravação você digita o número e fala o
+mesmo número, e no teclado do Monitor Serial os mesmos números também
+funcionam.
+
+| Fale | Tecla | O que faz | Registro no módulo |
+|------|-------|-----------|--------------------|
+| "um" | `1` ou `f` | anda para frente até parar | 0 |
+| "dois" | `2` ou `t` | anda para trás até parar | 1 |
+| "três" | `3` ou `e` | gira à esquerda por um tempo curto | 2 |
+| "quatro" | `4` ou `d` | gira à direita por um tempo curto | 3 |
+| "cinco" | `5` ou `p` | para imediatamente | 4 |
+| "seis" | `6` ou `+` | sobe um nível de velocidade | 5 |
+| "sete" | `7` ou `-` | desce um nível de velocidade | 6 |
+
+O módulo grava qualquer som, então dá para trocar os números por palavras
+sem mudar o firmware: ele usa a posição da gravação, não o que foi dito.
 
 São sete porque o módulo V3 reconhece no máximo sete registros ao mesmo
 tempo, embora guarde até 80 na memória.
