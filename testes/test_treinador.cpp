@@ -15,9 +15,14 @@
 
 class ModuloV3Lento : public HardwareSerial {
  public:
-  ModuloV3Lento() : n_(0), pos_(0), n_ent_(0), fim_(0) {
+  ModuloV3Lento() : falhas_(0), para_no_meio_(false), n_(0), pos_(0), n_ent_(0), fim_(0) {
     memset(treinado_, 0, sizeof(treinado_));
   }
+
+  // Quantas vezes as duas falas nao batem antes de gravar, e se o modulo
+  // fica calado depois dessas falhas em vez de gravar.
+  int falhas_;
+  bool para_no_meio_;
 
   void begin(long) override { n_ = pos_ = n_ent_ = 0; }
 
@@ -92,12 +97,24 @@ class ModuloV3Lento : public HardwareSerial {
       q[k++] = 0x0A;
       responder(q, k, 5);
     } else if (cmd == 0x20) {
+      // Cada tentativa leva cerca de 10 s, como no modulo real: o tempo de a
+      // pessoa ouvir o aviso e falar duas vezes.
       uint8_t r = ent_[3];
-      aviso(r, "Speak now", 50);
-      aviso(r, "Speak again", 1500);
-      aviso(r, "Success", 1500);
+      unsigned long d = 50;
+      for (int i = 0; i < falhas_; ++i) {
+        aviso(r, "Speak now", d);
+        d += 4000;
+        aviso(r, "Speak again", d);
+        d += 4000;
+        aviso(r, "Cann't matched", d);
+        d += 2000;
+      }
+      if (para_no_meio_) return;
+      aviso(r, "Speak now", d);
+      aviso(r, "Speak again", d + 4000);
+      aviso(r, "Success", d + 8000);
       const uint8_t q[] = {0xAA, 0x05, 0x20, 0x01, r, 0x00, 0x0A};
-      responder(q, sizeof(q), 10);
+      responder(q, sizeof(q), d + 8010);
       treinado_[r] = true;
     }
   }
@@ -162,11 +179,41 @@ int main() {
   confere(tem(saida, "FALE A PALAVRA DE NOVO"), "avisa a hora de repetir");
   confere(tem(saida, "GRAVADO com sucesso"), "informa que gravou");
 
+  // As duas falas nao batem 4 vezes (cerca de 40 s) e na quinta da certo. A
+  // ferramenta tem que esperar, e nao desistir no meio.
+  modulo_sim.falhas_ = 4;
+  comecarCaptura();
+  treinar(1);
+  saida = terminarCaptura();
+  modulo_sim.falhas_ = 0;
+  confere(tem(saida, "as duas falas sairam diferentes"),
+          "explica quando as duas falas nao batem");
+  confere(tem(saida, "GRAVADO com sucesso"),
+          "espera as novas tentativas do modulo e grava");
+  confere(!tem(saida, "Confira RX/TX"),
+          "nao culpa os fios quando o modulo esta respondendo");
+
+  // O modulo responde, erra e depois fica calado: a mensagem nao pode mandar
+  // conferir os fios, porque a comunicacao esta funcionando.
+  modulo_sim.falhas_ = 2;
+  modulo_sim.para_no_meio_ = true;
+  comecarCaptura();
+  treinar(2);
+  saida = terminarCaptura();
+  modulo_sim.falhas_ = 0;
+  modulo_sim.para_no_meio_ = false;
+  confere(tem(saida, "nao terminou a gravacao"),
+          "avisa que o modulo parou no meio da gravacao");
+  confere(!tem(saida, "Confira RX/TX"),
+          "nem nesse caso culpa os fios");
+
   comecarCaptura();
   carregar();
   saida = terminarCaptura();
   confere(tem(saida, "registro 3 (direita): carregado"),
           "lista o registro gravado como carregado");
+  confere(tem(saida, "registro 1 (tras): carregado"),
+          "o registro gravado depois de varias tentativas tambem carrega");
   confere(tem(saida, "registro 0 (frente): NAO TREINADO"),
           "lista o registro vazio como nao treinado");
   confere(escutando, "entra no modo de escuta");

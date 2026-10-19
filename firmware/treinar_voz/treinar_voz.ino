@@ -114,6 +114,8 @@ void mostrarAviso() {
     Serial.println(F("deu certo"));
   } else if (strstr(texto, "atch")) {
     Serial.println(F("as duas falas sairam diferentes"));
+    Serial.println(F("     O modulo vai pedir de novo. Fale igual nas duas vezes:"));
+    Serial.println(F("     mesma distancia, mesmo tom, so a palavra, logo apos o aviso."));
   } else {
     Serial.println();
   }
@@ -138,10 +140,14 @@ void treinar(uint8_t registro) {
   uint8_t dados[1] = {registro};
   enviarComando(CMD_TREINAR, dados, 1);
 
-  // O usuario pode demorar para falar as duas vezes: espera ate 30 s.
+  // Quando as duas falas nao batem, o modulo pede tudo de novo sozinho, quantas
+  // vezes for preciso. Por isso nao ha um tempo total curto: a ferramenta so
+  // desiste se o modulo ficar 15 s calado, ou depois de 3 minutos tentando.
   unsigned long inicio = millis();
-  while ((millis() - inicio) < 30000) {
+  bool modulo_falou = false;
+  while ((millis() - inicio) < 180000UL) {
     if (receberQuadro(15000) == 0) break;
+    modulo_falou = true;
     if (quadro[2] == CMD_AVISO) {
       mostrarAviso();
       continue;
@@ -164,7 +170,14 @@ void treinar(uint8_t registro) {
     }
     return;
   }
-  Serial.println(F("  -> Sem resposta. Confira RX/TX cruzados e a alimentacao."));
+  if (modulo_falou) {
+    // O modulo esta ligado e conversando; so nao terminou a gravacao. Ele pode
+    // ter ficado no meio do treino, entao o mais seguro e reinicia-lo.
+    Serial.println(F("  -> O modulo nao terminou a gravacao."));
+    Serial.println(F("     Tire o USB por 2 segundos, ligue de novo e repita o numero."));
+  } else {
+    Serial.println(F("  -> Sem resposta. Confira RX/TX cruzados e a alimentacao."));
+  }
 }
 
 // Procura o modulo nas velocidades que o V3 aceita. Retorna o baud em que
