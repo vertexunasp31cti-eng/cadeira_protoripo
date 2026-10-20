@@ -8,10 +8,10 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 | L298N | Arduino Mega | Observação |
 |-------|--------------|-----------|
 | ENA   | 5            | PWM, velocidade do motor esquerdo |
-| IN1   | 35           | sentido do motor esquerdo |
-| IN2   | 33           | sentido do motor esquerdo |
-| IN3   | 34           | sentido do motor direito |
-| IN4   | 32           | sentido do motor direito |
+| IN1   | 7            | sentido do motor esquerdo |
+| IN2   | 8            | sentido do motor esquerdo |
+| IN3   | 9            | sentido do motor direito |
+| IN4   | 10           | sentido do motor direito |
 | ENB   | 6            | PWM, velocidade do motor direito |
 | GND   | GND          | terra comum, obrigatório |
 | OUT1/OUT2 | motor esquerdo | |
@@ -41,13 +41,15 @@ Para testar se o problema é o fio, tire o fio do pino 5 ou 6, recoloque o
 jumper e digite `m`. Se assim a roda gira e com o fio não, o fio está no
 pino errado do cabeçote, solto ou partido.
 
-Atenção também ao bloco duplo do fim do Mega: os pinos 32, 33, 34 e 35 ficam
-lado a lado em duas fileiras (pares de um lado, ímpares do outro). É fácil
-trocar um fio de lugar. Confira com calma: IN1→35, IN2→33, IN3→34, IN4→32.
+Os fios de sentido (IN1 a IN4) ficam nos pinos 7, 8, 9 e 10, na fileira
+simples de cima do Mega, perto do 5 e do 6. Antes eles ficavam nos pinos 32
+a 35, no conector duplo do fim da placa, onde é fácil encaixar um fio um furo
+para o lado. Foi o que aconteceu na montagem: só um dos quatro estava no
+lugar certo.
 
-Os pinos de 32 a 35 não têm PWM, e não precisam ter: eles só definem o
-sentido de giro, com nível alto ou baixo. Quem controla a velocidade é o par
-ENA e ENB, e esses dois precisam de pino PWM.
+Esses quatro pinos só definem o sentido de giro, com nível alto ou baixo.
+Quem controla a velocidade é o par ENA e ENB, e esses dois precisam de pino
+PWM.
 
 Por que os pinos 5 e 6 para ENA e ENB: no Mega, os pinos 4 e 13 usam o
 Timer0, o mesmo timer da função `millis()`. Usar PWM neles atrapalha a base
@@ -97,7 +99,7 @@ buracos nem degraus para baixo.
 
 | Componente | Arduino Mega | Observação |
 |-----------|--------------|-----------|
-| Buzzer ativo 5V (+) | 8 | o negativo vai ao GND |
+| Buzzer ativo 5V (+) | 12 | opcional; o negativo vai ao GND |
 | LED de status | 13 | já existe na placa |
 | Botão de emergência | 3 e GND | contato normalmente aberto |
 
@@ -179,7 +181,7 @@ para parar.
   |  máquina de estados +         |
   |  travas de segurança          |<------| Botão emergência (3)|
   +-------------------------------+
-            | PWM 5/6  + sentido 32..35
+            | PWM 5/6  + sentido 7..10
             v
   +---------------------+        +------------------------+
   | Ponte H L298N       |------->| 2 motores DC + rodas   |

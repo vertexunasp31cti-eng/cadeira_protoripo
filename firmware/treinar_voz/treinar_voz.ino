@@ -362,7 +362,7 @@ void buscarModulo() {
 // ferramenta nao usa os motores, mas deixa esses pinos em nivel baixo: soltos,
 // eles flutuam e, com a bateria ligada no L298N, uma roda pode girar sozinha
 // durante o treino.
-static const uint8_t PINOS_PONTE_H[6] = {5, 35, 33, 6, 34, 32};
+static const uint8_t PINOS_PONTE_H[6] = {5, 7, 8, 6, 9, 10};
 
 void setup() {
   for (uint8_t i = 0; i < 6; ++i) {

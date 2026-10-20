@@ -16,15 +16,18 @@
 // ENA e ENB precisam ser pinos PWM. No Mega evite os pinos 4 e 13: eles usam
 // o Timer0, o mesmo do millis(). Os pinos 5 e 6 estao em timers livres.
 const uint8_t PINO_ENA = 5;   // PWM - velocidade do motor esquerdo
-const uint8_t PINO_IN1 = 35;  // sentido do motor esquerdo
-const uint8_t PINO_IN2 = 33;
+const uint8_t PINO_IN1 = 7;   // sentido do motor esquerdo
+const uint8_t PINO_IN2 = 8;
 const uint8_t PINO_ENB = 6;   // PWM - velocidade do motor direito
-const uint8_t PINO_IN3 = 34;  // sentido do motor direito
-const uint8_t PINO_IN4 = 32;
+const uint8_t PINO_IN3 = 9;   // sentido do motor direito
+const uint8_t PINO_IN4 = 10;
 
-// Os pinos 32 a 35 nao tem PWM no Mega, e nem precisam: eles so definem o
-// sentido de giro. Quem controla a velocidade e ENA/ENB, que precisam
-// obrigatoriamente de pinos PWM.
+// IN1 a IN4 ficam nos pinos 7 a 10, na fileira simples de cima, ao lado do 5
+// e do 6. No conector duplo do fim da placa (22 a 53) e facil encaixar o fio
+// um furo para o lado, e isso aconteceu na montagem. Esses pinos so definem o
+// sentido de giro com digitalWrite; quem controla a velocidade e ENA/ENB.
+// O digitalWrite nos pinos 7 e 8 desliga apenas o canal PWM deles no Timer4,
+// sem afetar o PWM do pino 6 (ENB), que usa outro canal do mesmo timer.
 
 // Se uma roda girar ao contrario do esperado, troque para true OU inverta os
 // dois fios do motor no L298N. Nunca as duas coisas: elas se anulam.
@@ -46,7 +49,7 @@ const unsigned long DEBOUNCE_IR_MS = 30;
 // ---------------------------------------------------------------------------
 // Sinalizacao e emergencia
 // ---------------------------------------------------------------------------
-const uint8_t PINO_BUZZER = 8;
+const uint8_t PINO_BUZZER = 12;  // opcional; o 8 agora e o IN2
 const uint8_t PINO_LED = 13;          // LED da propria placa
 const uint8_t PINO_BOTAO_EMERG = 3;   // botao NA para GND (opcional)
 

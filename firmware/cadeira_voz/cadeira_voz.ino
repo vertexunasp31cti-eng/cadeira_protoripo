@@ -217,7 +217,7 @@ void testeMotores() {
   }
   SERIAL_DEBUG.println(F("Fim do teste. Se alguma roda nao girou, confira:"));
   SERIAL_DEBUG.println(F("  bateria no 12V/VMS do L298N e GND do Mega no mesmo"));
-  SERIAL_DEBUG.println(F("  borne GND da bateria; fios IN1=35 IN2=33 IN3=34 IN4=32;"));
+  SERIAL_DEBUG.println(F("  borne GND da bateria; fios IN1=7 IN2=8 IN3=9 IN4=10;"));
   SERIAL_DEBUG.println(F("  ENA/ENB: ou jumper colocado e nada nos pinos 5 e 6,"));
   SERIAL_DEBUG.println(F("  ou jumper retirado e fio 5->ENA, 6->ENB. Nunca os dois."));
 }
