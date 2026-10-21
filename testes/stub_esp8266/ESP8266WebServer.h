@@ -44,6 +44,16 @@ class ESP8266WebServer {
                  const char* valor_arg = 0) {
     args_.clear();
     if (nome_arg) args_[nome_arg] = valor_arg;
+    return requisitarSemLimpar(caminho);
+  }
+  // Requisicao com dois argumentos: definirArgs() e depois requisitarSemLimpar().
+  void definirArgs(const char* n1, const char* v1, const char* n2,
+                   const char* v2) {
+    args_.clear();
+    args_[n1] = v1;
+    args_[n2] = v2;
+  }
+  int requisitarSemLimpar(const char* caminho) {
     codigo_ = 0;
     corpo_.clear();
     std::map<std::string, Rota>::iterator it = rotas_.find(caminho);

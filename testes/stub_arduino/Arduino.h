@@ -21,6 +21,8 @@
 #define OUTPUT 1
 #define INPUT_PULLUP 2
 
+#define A0 54
+
 #define F(x) (x)
 #define PROGMEM
 
@@ -42,6 +44,7 @@ void pinMode(uint8_t pino, uint8_t modo);
 int digitalRead(uint8_t pino);
 void digitalWrite(uint8_t pino, uint8_t valor);
 void analogWrite(uint8_t pino, int valor);
+int analogRead(uint8_t pino);
 unsigned long millis();
 void delay(unsigned long ms);
 

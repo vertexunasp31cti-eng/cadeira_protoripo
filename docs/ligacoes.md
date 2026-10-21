@@ -102,6 +102,34 @@ Não alimente os motores pelo pino 5V do Arduino. O pico de partida de dois
 motores passa do que o regulador da placa aguenta e a placa reinicia sozinha
 no meio da operação.
 
+### Medição da bateria (para o app mostrar a carga)
+
+Dois resistores formam um divisor de tensão que leva a tensão da bateria dos
+motores para uma faixa que o pino analógico aguenta:
+
+```
+  + da bateria ──[ R1 20 kΩ ]──┬──[ R2 10 kΩ ]── GND
+                               │
+                               └── A0 do Mega
+```
+
+| Ponto | Liga em |
+|-------|---------|
+| ponta livre de R1 | + da bateria dos motores (o mesmo fio que vai ao `12V` do L298N) |
+| meio, entre R1 e R2 | A0 |
+| ponta livre de R2 | GND comum |
+
+O divisor divide por 3: a bateria cheia (8,4 V) chega como 2,8 V no A0. Mesmo
+com 9 V de seis pilhas AA o pino recebe 3 V, abaixo do limite de 5 V.
+
+Ligue o divisor **depois** da chave liga/desliga da bateria. Antes dela, os
+30 kΩ ficam sempre ligados e consomem cerca de 0,3 mA com a cadeira
+desligada, o que descarrega a bateria em semanas.
+
+Se a tensão mostrada no Monitor Serial for diferente da do multímetro,
+ajuste `REFERENCIA_MV` em `firmware/cadeira_voz/bateria.h`. O Mega pela USB
+costuma ficar entre 4,7 V e 5,0 V, e a leitura é proporcional a esse valor.
+
 ## 6. Chaves DIP da placa
 
 A placa tem um bloco de oito chaves DIP que decide quem conversa pelo cabo

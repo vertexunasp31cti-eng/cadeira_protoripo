@@ -44,6 +44,14 @@ const uint8_t NIVEL_IR_DETECTADO = LOW;
 const unsigned long DEBOUNCE_IR_MS = 30;
 
 // ---------------------------------------------------------------------------
+// Medicao da bateria dos motores
+// ---------------------------------------------------------------------------
+// Divisor resistivo 20k / 10k entre o + da bateria e o GND, com o ponto do
+// meio no A0. O fator do divisor e a curva de descarga ficam em bateria.h.
+// Sem o divisor instalado o app mostra a bateria como "nao medida".
+const uint8_t PINO_BATERIA = A0;
+
+// ---------------------------------------------------------------------------
 // Sinalizacao e emergencia
 // ---------------------------------------------------------------------------
 const uint8_t PINO_BUZZER = 8;

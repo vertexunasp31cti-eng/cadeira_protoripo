@@ -16,6 +16,7 @@
 #include <string>
 
 WiFiStub WiFi;
+EEPROMClass EEPROM;
 
 static int total = 0;
 static int falhas = 0;
@@ -236,6 +237,44 @@ int main() {
     servidor.requisitar("/estado");
     verificar(contem(servidor.corpo(), "\"mega\":0"),
               "Mega calado por mais de 1,5 s aparece como desconectado");
+  }
+
+  // ------------------------------------------------------------------
+  titulo("7. Login: nome e data do primeiro acesso");
+  {
+    servidor.requisitar("/estado");
+    verificar(contem(servidor.corpo(), "\"login\":null"),
+              "flash nova: ainda sem login");
+
+    verificar(servidor.requisitar("/login", "nome", "Ana") == 400,
+              "login sem data e recusado");
+    verificar(servidor.requisitar("/login", "t", "1792540800") == 400,
+              "login sem nome e recusado");
+
+    servidor.definirArgs("nome", "Ana \"Maria\"\\", "t", "1792540800");
+    verificar(servidor.requisitarSemLimpar("/login") == 200, "login valido e aceito");
+    verificar(EEPROM.gravacoes > 0, "login e gravado na flash");
+
+    servidor.requisitar("/estado");
+    verificar(contem(servidor.corpo(),
+                     "\"login\":{\"nome\":\"Ana Maria\",\"desde\":1792540800}"),
+              "/estado devolve o nome e a data, sem aspas que quebrem o JSON");
+
+    // Desliga e liga a placa: o login continua la.
+    memset(&login, 0, sizeof(login));
+    carregarLogin();
+    servidor.requisitar("/estado");
+    verificar(contem(servidor.corpo(), "\"desde\":1792540800"),
+              "login sobrevive a desligar e ligar a placa");
+
+    servidor.definirArgs("nome", "Ana", "t", "1600000000");
+    verificar(servidor.requisitarSemLimpar("/login") == 400,
+              "data antes de 2024 (relogio do celular errado) e recusada");
+
+    servidor.requisitar("/login", "apagar", "1");
+    servidor.requisitar("/estado");
+    verificar(contem(servidor.corpo(), "\"login\":null"),
+              "apagar o login volta para a tela de login");
   }
 
   printf("\n----------------------------------------\n");

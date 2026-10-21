@@ -15,6 +15,8 @@
  *     qualquer celular, sem instalar nada.
  *  3. Cada toque no app vira uma linha "CMD:x" enviada ao Mega.
  *  4. A telemetria em JSON que o Mega publica e devolvida ao app.
+ *  5. Guarda o login (nome e data do primeiro acesso), que o app usa para
+ *     mostrar ha quantos dias a cadeira esta em uso.
  *
  *  Quem decide se a cadeira anda continua sendo o Mega: os comandos do app
  *  passam pela mesma maquina de estados e pelas mesmas travas da voz. O ESP
@@ -27,6 +29,7 @@
  * ===========================================================================
  */
 
+#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 
@@ -56,6 +59,23 @@ const unsigned long LIMITE_MEGA_MS = 1500;
 // do alcance do Wi-Fi, travou), o ESP manda PARAR sozinho. Isso e mais rapido
 // que o homem-morto de 3 s do Mega, que continua valendo por baixo.
 const unsigned long LIMITE_APP_MS = 1000;
+
+// ---------------------------------------------------------------------------
+// Login
+// ---------------------------------------------------------------------------
+// O ESP8266 nao tem relogio. A data do login vem do celular, em segundos desde
+// 1970 (horario UTC), e fica gravada na memoria flash, que nao se apaga ao
+// desligar. Quem conta os dias e o app, com o relogio do proprio celular.
+const uint32_t LOGIN_MAGICO = 0x43414431;  // "CAD1": marca de registro valido
+const unsigned int TAM_NOME = 32;           // 31 letras + terminador
+
+struct RegistroLogin {
+  uint32_t magico;
+  uint32_t desde;  // segundos desde 1970, UTC
+  char nome[TAM_NOME];
+};
+
+RegistroLogin login;
 
 ESP8266WebServer servidor(80);
 
@@ -91,6 +111,33 @@ void enviarAoMega(char letra) {
   Serial.print('\n');
 }
 
+bool temLogin() { return login.magico == LOGIN_MAGICO; }
+
+void carregarLogin() {
+  EEPROM.begin(sizeof(RegistroLogin));
+  EEPROM.get(0, login);
+  if (!temLogin()) memset(&login, 0, sizeof(login));
+  login.nome[TAM_NOME - 1] = '\0';  // flash nova vem cheia de 0xFF
+}
+
+void gravarLogin() {
+  EEPROM.put(0, login);
+  EEPROM.commit();
+}
+
+// O nome vai dentro do JSON do /estado, entao so passam caracteres que nao
+// quebram o JSON: nada de aspas, barra invertida nem caracteres de controle.
+void copiarNome(const String& origem, char* destino) {
+  unsigned int n = 0;
+  const char* s = origem.c_str();
+  for (; *s && n < TAM_NOME - 1; ++s) {
+    unsigned char c = (unsigned char)*s;
+    if (c < 32 || c == '"' || c == '\\' || c == 127) continue;
+    destino[n++] = (char)c;
+  }
+  destino[n] = '\0';
+}
+
 bool megaConectado(unsigned long agora) {
   return recebeu_telemetria && (agora - t_telemetria) < LIMITE_MEGA_MS;
 }
@@ -117,6 +164,30 @@ void rotaComando() {
   servidor.send(400, "text/plain", "comando desconhecido");
 }
 
+// /login?nome=Ana&t=1792540800  registra o primeiro acesso
+// /login?apagar=1               apaga, para fazer o login de novo
+void rotaLogin() {
+  if (servidor.arg("apagar") == "1") {
+    memset(&login, 0, sizeof(login));
+    gravarLogin();
+    servidor.send(200, "text/plain", "ok");
+    return;
+  }
+  char nome[TAM_NOME];
+  copiarNome(servidor.arg("nome"), nome);
+  long desde = servidor.arg("t").toInt();
+  // Data anterior a 2024 quer dizer relogio do celular errado ou campo vazio.
+  if (nome[0] == '\0' || desde < 1704067200L) {
+    servidor.send(400, "text/plain", "nome ou data invalidos");
+    return;
+  }
+  login.magico = LOGIN_MAGICO;
+  login.desde = (uint32_t)desde;
+  memcpy(login.nome, nome, TAM_NOME);
+  gravarLogin();
+  servidor.send(200, "text/plain", "ok");
+}
+
 // Junta o estado da ligacao com a ultima telemetria do Mega.
 void rotaEstado() {
   unsigned long agora = millis();
@@ -124,6 +195,16 @@ void rotaEstado() {
   json += megaConectado(agora) ? "1" : "0";
   json += ",\"clientes\":";
   json += String(WiFi.softAPgetStationNum());
+  json += ",\"login\":";
+  if (temLogin()) {
+    json += "{\"nome\":\"";
+    json += login.nome;
+    json += "\",\"desde\":";
+    json += String(login.desde);
+    json += "}";
+  } else {
+    json += "null";
+  }
   json += ",\"cadeira\":";
   json += recebeu_telemetria ? telemetria : "null";
   json += "}";
@@ -161,6 +242,7 @@ void lerMega(unsigned long agora) {
 // ---------------------------------------------------------------------------
 void setup() {
   Serial.begin(BAUD_MEGA);
+  carregarLogin();
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(NOME_REDE, SENHA_REDE);
@@ -168,6 +250,7 @@ void setup() {
   servidor.on("/", rotaPagina);
   servidor.on("/cmd", rotaComando);
   servidor.on("/estado", rotaEstado);
+  servidor.on("/login", rotaLogin);
   servidor.onNotFound(rotaNaoEncontrada);
   servidor.begin();
 

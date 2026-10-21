@@ -71,6 +71,16 @@ int main() {
   verificar(controle.estado() == EST_PARADA,
             "comando do app durante a emergencia e descartado, nao guardado");
 
+  // Bateria de 7,9 V no divisor 3x: 2,63 V no pino A0, leitura 539.
+  pinos_simulados[PINO_BATERIA] = 539;
+  rodar(300);
+  Serial3.retirarSaida();
+  rodar(30);
+  saida = Serial3.retirarSaida();
+  verificar(saida.find("\"batMv\":79") != std::string::npos &&
+                saida.find("\"batPct\":-1") == std::string::npos,
+            "tensao e carga da bateria saem na telemetria");
+
   if (falhas) return 1;
 #endif
   return 0;

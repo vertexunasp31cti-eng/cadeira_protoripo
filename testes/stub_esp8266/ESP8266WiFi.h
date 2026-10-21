@@ -21,6 +21,7 @@ class String {
   String& operator+=(const char* s) { s_ += s; return *this; }
   String& operator+=(const String& o) { s_ += o.s_; return *this; }
   bool operator==(const char* s) const { return s_ == s; }
+  long toInt() const { return atol(s_.c_str()); }
   const char* c_str() const { return s_.c_str(); }
 
  private:

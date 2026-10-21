@@ -33,6 +33,7 @@
  */
 
 #include "config.h"
+#include "bateria.h"
 #include "controle.h"
 #include "motores.h"
 #include "protocolo_app.h"
@@ -46,6 +47,7 @@ Motores motores;
 SensorObstaculo sensor;
 ControleCadeira controle;
 VR3 voz(SERIAL_VOZ);
+EstimadorBateria bateria;
 
 bool voz_pronta = false;
 unsigned long t_telemetria = 0;
@@ -186,6 +188,10 @@ void telemetriaApp(unsigned long agora, bool emergencia) {
   SERIAL_ESP.print(voz_pronta ? 1 : 0);
   SERIAL_ESP.print(F(",\"recusado\":"));
   SERIAL_ESP.print(controle.ultimoComandoRecusado() ? 1 : 0);
+  SERIAL_ESP.print(F(",\"batMv\":"));
+  SERIAL_ESP.print(bateria.milivolts());
+  SERIAL_ESP.print(F(",\"batPct\":"));
+  SERIAL_ESP.print(bateria.percentual());
   SERIAL_ESP.print(F(",\"motivo\":\""));
   SERIAL_ESP.print(nomeMotivo(controle.motivoUltimaParada()));
   SERIAL_ESP.println(F("\"}"));
@@ -222,6 +228,15 @@ void telemetria(unsigned long agora) {
   SERIAL_DEBUG.print(controle.nivelVelocidade() + 1);
   SERIAL_DEBUG.print(F("  obstaculo="));
   SERIAL_DEBUG.print(controle.obstaculoDetectado() ? F("SIM") : F("nao"));
+  SERIAL_DEBUG.print(F("  bateria="));
+  if (bateria.ligada()) {
+    SERIAL_DEBUG.print(bateria.milivolts());
+    SERIAL_DEBUG.print(F("mV/"));
+    SERIAL_DEBUG.print(bateria.percentual());
+    SERIAL_DEBUG.print('%');
+  } else {
+    SERIAL_DEBUG.print(F("nao medida"));
+  }
   SERIAL_DEBUG.print(F("  ultima parada: "));
   SERIAL_DEBUG.println(nomeMotivo(controle.motivoUltimaParada()));
 }
@@ -341,6 +356,8 @@ void loop() {
   bool obstaculo = sensor.atualizar(agora);
   controle.atualizar(agora, obstaculo);
   motores.aplicar(controle.pwmEsquerdo(), controle.pwmDireito());
+
+  bateria.amostrar(analogRead(PINO_BATERIA), controle.emMovimento(), agora);
 
   atualizarSinalizacao(agora);
   telemetria(agora);

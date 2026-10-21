@@ -7,7 +7,13 @@
  * Como o app conversa com a cadeira:
  *   GET /cmd?c=frente   envia um comando (frente, re, esquerda, direita,
  *                       parar, rapido, devagar)
- *   GET /estado         ligacao com o Mega + ultima telemetria, a cada 250 ms
+ *   GET /estado         ligacao com o Mega + ultima telemetria + login,
+ *                       a cada 250 ms
+ *   GET /login          registra o nome e a data do primeiro acesso
+ *
+ * Na primeira vez o app pede o nome. A data desse login fica gravada no
+ * ESP8266, e o app conta ha quantos dias a cadeira esta em uso com o relogio
+ * do proprio celular, porque o ESP8266 nao tem relogio.
  *
  * Botoes de movimento funcionam como "segure para andar": enquanto o dedo
  * esta no botao o comando e repetido a cada 300 ms, e ao soltar o app manda
@@ -72,6 +78,30 @@ button:disabled{opacity:.35}
 .velocidade{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .velocidade button{min-height:56px;font-size:16px}
 .dica{text-align:center;font-size:13px;color:var(--suave);margin-top:14px}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.info .cartao{margin:0}
+.grande{font-size:28px;font-weight:700;line-height:1.1;margin-top:2px;font-variant-numeric:tabular-nums}
+.grande small{font-size:14px;font-weight:600;color:var(--suave)}
+.sub{font-size:12px;color:var(--suave);margin-top:4px}
+.pilha{height:8px;border-radius:4px;background:var(--fundo);margin-top:8px;overflow:hidden}
+.pilha span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.rodape{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--suave);margin-top:10px}
+.link{background:none;border:0;min-height:0;padding:0;font-size:13px;font-weight:600;color:var(--acao);text-decoration:underline;touch-action:manipulation}
+.confirma{display:none;margin-top:10px;text-align:center;font-size:14px}
+.confirma.mostrar{display:block}
+.confirma div{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.confirma button{min-height:44px;padding:0 16px;font-size:15px}
+#login{display:none}
+.sem-login #login{display:block}
+.sem-login #principal{display:none}
+#login h2{font-size:22px;margin:8px 0 4px}
+#login p{color:var(--suave);margin:0 0 16px}
+#login label{display:block;font-size:13px;color:var(--suave);margin-bottom:6px}
+#login input{width:100%;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--borda);
+background:var(--fundo);color:var(--texto);margin-bottom:12px}
+#login input:focus{outline:2px solid var(--acao);outline-offset:1px}
+#login button{width:100%;min-height:56px;background:var(--acao);border-color:var(--acao)}
+#login-erro{color:var(--perigo);font-size:14px;min-height:20px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -85,6 +115,16 @@ button:disabled{opacity:.35}
 
 <div class="aviso perigo" id="aviso"></div>
 
+<form id="login" class="cartao" autocomplete="off">
+  <h2>Bem-vindo</h2>
+  <p>Primeiro acesso a esta cadeira. A partir de hoje o app conta há quantos dias ela está em uso.</p>
+  <label for="login-nome">Seu nome</label>
+  <input id="login-nome" maxlength="20" required placeholder="Ex.: Ana">
+  <button type="submit">Entrar</button>
+  <div id="login-erro" role="alert"></div>
+</form>
+
+<div id="principal">
 <section class="cartao" aria-live="polite">
   <div class="linha">
     <div>
@@ -106,6 +146,20 @@ button:disabled{opacity:.35}
   </div>
 </section>
 
+<section class="info">
+  <div class="cartao">
+    <div class="rotulo">Bateria</div>
+    <div class="grande" id="bat-pct">--</div>
+    <div class="pilha"><span id="bat-barra"></span></div>
+    <div class="sub" id="bat-sub">estimada pela tensão</div>
+  </div>
+  <div class="cartao">
+    <div class="rotulo">Em uso há</div>
+    <div class="grande" id="dias">--</div>
+    <div class="sub" id="dias-sub">desde o login</div>
+  </div>
+</section>
+
 <section class="controle">
   <span class="vazio"></span>
   <button class="mover" data-c="frente"><span class="seta">&#9650;</span>Frente</button>
@@ -124,6 +178,12 @@ button:disabled{opacity:.35}
 </section>
 
 <p class="dica">Segure a seta para andar. Ao soltar o dedo, a cadeira para.</p>
+<div class="rodape"><span id="usuario"></span><button type="button" class="link" id="refazer">Refazer login</button></div>
+<div class="confirma" id="confirma">
+  Apagar o login e começar a contar os dias de novo?
+  <div><button type="button" id="confirma-sim">Apagar</button><button type="button" id="confirma-nao">Cancelar</button></div>
+</div>
+</div>
 
 <script>
 (function(){
@@ -139,7 +199,8 @@ function vibrar(){ if(navigator.vibrate) navigator.vibrate(15); }
 
 // --- Botoes de movimento: segure para andar --------------------------------
 function comecar(botao){
-  if(botao.disabled) return;
+  // Sem login os botoes ficam escondidos; as setas do teclado tambem nao valem.
+  if(botao.disabled||document.body.classList.contains("sem-login")) return;
   soltar(false);
   segurando=botao; botao.classList.add("ativo"); vibrar();
   enviar(botao.dataset.c);
@@ -199,19 +260,69 @@ function limpar(texto){
   $("motivo").textContent="-"; $("voz").textContent="-";
   Array.prototype.forEach.call($("niveis").children,function(b){ b.classList.remove("on"); });
 }
+// --- Bateria e dias de uso ------------------------------------------------
+function bateria(c){
+  var pct=c?c.batPct:-1, b=$("bat-barra");
+  if(pct==null||pct<0){
+    $("bat-pct").textContent="--"; b.style.width="0";
+    $("bat-sub").textContent=c?"não medida (divisor no A0)":"estimada pela tensão";
+    return;
+  }
+  $("bat-pct").textContent=pct+"%";
+  b.style.width=pct+"%";
+  b.style.background=pct<=15?"var(--perigo)":pct<=35?"var(--alerta)":"var(--ok)";
+  $("bat-sub").textContent=(c.batMv/1000).toFixed(1).replace(".",",")+" V · estimada";
+}
+// Dias de calendario entre o login e hoje, no fuso do celular.
+function diasDesde(seg){
+  var a=new Date(seg*1000), h=new Date(Date.now());
+  var d0=new Date(a.getFullYear(),a.getMonth(),a.getDate()), d1=new Date(h.getFullYear(),h.getMonth(),h.getDate());
+  return Math.max(0,Math.round((d1-d0)/86400000));
+}
+function dataBr(seg){
+  var a=new Date(seg*1000);
+  return ("0"+a.getDate()).slice(-2)+"/"+("0"+(a.getMonth()+1)).slice(-2)+"/"+a.getFullYear();
+}
+function login(l){
+  document.body.classList.toggle("sem-login",!l);
+  if(!l){ $("dias").textContent="--"; $("usuario").textContent=""; return; }
+  var n=diasDesde(l.desde);
+  $("dias").innerHTML=n===0?"hoje":n+" <small>"+(n===1?"dia":"dias")+"</small>";
+  $("dias-sub").textContent="desde "+dataBr(l.desde);
+  $("usuario").textContent="Logado como "+l.nome+" ·";
+}
+$("login").addEventListener("submit",function(e){
+  e.preventDefault();
+  var nome=$("login-nome").value.trim();
+  if(!nome){ $("login-erro").textContent="Digite seu nome."; return; }
+  $("login-erro").textContent="";
+  fetch("/login?nome="+encodeURIComponent(nome)+"&t="+Math.floor(Date.now()/1000),{cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw 0; $("login-nome").value=""; document.body.classList.remove("sem-login"); })
+    .catch(function(){ $("login-erro").textContent="Não foi possível entrar. Confira o Wi-Fi e a hora do celular."; });
+});
+$("refazer").addEventListener("click",function(){ $("confirma").classList.add("mostrar"); });
+$("confirma-nao").addEventListener("click",function(){ $("confirma").classList.remove("mostrar"); });
+$("confirma-sim").addEventListener("click",function(){
+  $("confirma").classList.remove("mostrar"); soltar(false); enviar("parar");
+  fetch("/login?apagar=1",{cache:"no-store"}).catch(function(){});
+});
+
 function mostrar(d){
   var c=d.cadeira;
+  login(d.login);
   cadeiraOk=!!d.mega && !!c;
   ligar("lig-wifi",true); ligar("lig-cadeira",cadeiraOk);
   habilitar(cadeiraOk && !(c && c.emergencia));
-  if(!cadeiraOk){ limpar("Aguardando"); aviso("Wi-Fi conectado, mas a cadeira não responde. Confira as chaves DIP 1 e 2.","alerta"); return; }
+  if(!cadeiraOk){ limpar("Aguardando"); bateria(null); aviso("Wi-Fi conectado, mas a cadeira não responde. Confira as chaves DIP 1 e 2.","alerta"); return; }
   $("estado").textContent=c.emergencia?"EMERGÊNCIA":(NOMES[c.estado]||c.estado);
   Array.prototype.forEach.call($("niveis").children,function(b,i){ b.classList.toggle("on",i<c.nivel); });
   barra("esq",c.pwmEsq); barra("dir",c.pwmDir);
   $("motivo").textContent=c.motivo;
   $("voz").textContent=c.voz?"pronta":"indisponível";
+  bateria(c);
   if(c.emergencia) aviso("Botão de emergência acionado. Solte o botão na cadeira para voltar.");
   else if(c.obstaculo) aviso("Obstáculo à frente! Só a ré está liberada.");
+  else if(c.batPct>=0&&c.batPct<=15) aviso("Bateria fraca ("+c.batPct+"%). Carregue antes de continuar.","alerta");
   else aviso("");
   var f=document.querySelector('[data-c="frente"]');
   if(c.obstaculo) { f.disabled=true; if(segurando===f) soltar(false); }

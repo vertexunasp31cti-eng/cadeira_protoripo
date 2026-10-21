@@ -20,7 +20,10 @@ nada, não precisa de roteador e não precisa de internet.
    O celular pode avisar que a rede "não tem internet". Mantenha a conexão
    assim mesmo.
 3. Abra o navegador em **http://192.168.4.1**.
-4. Confira as duas bolinhas no topo:
+4. Na primeira vez, o app pede o seu nome (login). A data desse dia fica
+   gravada na cadeira, e a partir dela o app conta há quantos dias a cadeira
+   está em uso.
+5. Confira as duas bolinhas no topo:
    - **Wi-Fi** verde: o celular está falando com o ESP8266.
    - **Cadeira** verde: o ESP8266 está recebendo a telemetria do Mega.
    Os botões só ficam ativos com as duas verdes.
@@ -35,11 +38,46 @@ No computador, as setas do teclado, a barra de espaço e as teclas `+` e `-`
 fazem o mesmo.
 
 O app mostra o estado atual, o PWM de cada roda, o nível de velocidade, se o
-módulo de voz está pronto e o motivo da última parada. Com obstáculo à
+módulo de voz está pronto, o motivo da última parada, a carga estimada da
+bateria e há quantos dias a cadeira está em uso. Com obstáculo à
 frente aparece um aviso vermelho e o botão Frente fica desativado.
 
 Voz, teclado do Monitor Serial e app funcionam ao mesmo tempo. Qualquer um
 deles pode parar a cadeira.
+
+## Bateria estimada
+
+O Mega mede a tensão da bateria dos motores por um divisor de tensão no pino
+A0 (ligação em `docs/ligacoes.md`, seção 5) e converte em porcentagem pela
+curva de descarga de uma bateria de lítio de 7,4 V (duas células, 8,4 V
+cheia e 6,6 V vazia).
+
+É uma **estimativa**, e o app escreve isso embaixo do número. A tensão de uma
+bateria de lítio não cai em linha reta, muda com a temperatura e com o
+desgaste das células, e afunda enquanto os motores puxam corrente. Para o
+número não despencar a cada partida, o firmware dá peso quase só às leituras
+feitas com a cadeira parada há pelo menos 1,5 s.
+
+Com 15% ou menos, o app mostra o aviso "Bateria fraca". Sem o divisor
+instalado, a bateria aparece como "não medida" e o resto funciona normalmente.
+
+Se usar 6 pilhas AA em vez da bateria de lítio, a porcentagem não vale: a
+curva em `firmware/cadeira_voz/bateria.cpp` é a do lítio.
+
+## Login e dias de uso
+
+O login é feito uma vez: o nome e a data ficam gravados na memória flash do
+ESP8266 e não se apagam ao desligar a cadeira. Qualquer celular que abrir o
+app depois vê o mesmo login.
+
+O ESP8266 não tem relógio. A data do login vem do celular que fez o login, e
+a conta dos dias é feita pelo app com o relógio do celular que está aberto.
+Os dias contam por data do calendário: no dia do login aparece "hoje", no dia
+seguinte "1 dia", e assim por diante. Por isso o relógio do celular precisa
+estar certo, e o ESP recusa login com data anterior a 2024.
+
+"Refazer login", no fim da tela, apaga o registro e zera a contagem. O app
+pede confirmação e para a cadeira antes.
 
 ## Segurança
 
@@ -117,7 +155,9 @@ Celular → ESP8266 (HTTP):
 |-----------|----------|
 | `GET /` | a página do app |
 | `GET /cmd?c=frente` | `ok`; também `re`, `esquerda`, `direita`, `parar`, `rapido`, `devagar` |
-| `GET /estado` | `{"mega":1,"clientes":1,"cadeira":{...telemetria...}}` |
+| `GET /estado` | `{"mega":1,"clientes":1,"login":{"nome":"Ana","desde":1792540800},"cadeira":{...}}` |
+| `GET /login?nome=Ana&t=1792540800` | grava o login; `t` em segundos desde 1970 |
+| `GET /login?apagar=1` | apaga o login |
 
 ESP8266 → Mega (Serial3, 115200 bps), uma linha por comando:
 
@@ -129,8 +169,10 @@ Mega → ESP8266, uma linha a cada 200 ms:
 
 ```json
 {"estado":"FRENTE","pwmEsq":130,"pwmDir":130,"nivel":1,"obstaculo":0,
- "emergencia":0,"voz":1,"recusado":0,"motivo":"-"}
+ "emergencia":0,"voz":1,"recusado":0,"batMv":7900,"batPct":73,"motivo":"-"}
 ```
+
+`batPct` vale `-1` quando não há bateria ligada no divisor.
 
 ## Testes
 

@@ -16,6 +16,7 @@ direto ao Wi-Fi da própria placa.
 - Sensor de obstáculo reflexivo infravermelho
 - 2 motores DC 3-6 V com roda de 68 mm
 - Buzzer ativo, LED e botão de emergência
+- Resistores de 20 kΩ e 10 kΩ para medir a bateria (opcional)
 
 ## Comandos de voz
 
@@ -41,6 +42,9 @@ precisa instalar nada nem ter internet.
 O app tem os mesmos comandos da voz, em botões de "segure para andar", e
 mostra em tempo real o estado da cadeira, o PWM de cada roda, o nível de
 velocidade, o aviso de obstáculo e a situação da ligação com a cadeira.
+Também mostra a **bateria estimada** (medida por um divisor de tensão no
+pino A0) e **há quantos dias a cadeira está em uso**, contados a partir do
+dia do primeiro login.
 Os comandos do app passam pela mesma máquina de estados da voz, então todas
 as travas abaixo valem para ele. Se o Wi-Fi cair, a cadeira para.
 
@@ -76,6 +80,7 @@ firmware/cadeira_voz/     firmware principal
   sensor_obstaculo.h/.cpp   sensor IR com filtro de ruído
   vr3.h / .cpp              driver do módulo de voz
   protocolo_app.h / .cpp    leitura dos comandos do app, sem Arduino
+  bateria.h / .cpp          estimativa da carga da bateria, sem Arduino
 
 firmware/app_wifi/        firmware do ESP8266: Wi-Fi e app do celular
   app_wifi.ino              ponte entre o celular e o Mega
@@ -154,8 +159,8 @@ computador:
 make -C testes
 ```
 
-Isso executa os 40 testes da máquina de estados, os 40 testes da ligação com
-o app do celular e depois compila o firmware inteiro e a ferramenta de
+Isso executa os 40 testes da máquina de estados, os 15 da estimativa de
+bateria, os 49 da ligação com o app do celular e depois compila o firmware inteiro e a ferramenta de
 treinamento usando um substituto da API do Arduino, o que pega erro de
 compilação antes de abrir o IDE.
 
