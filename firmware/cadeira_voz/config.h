@@ -80,9 +80,15 @@ const unsigned long TELEMETRIA_MS = 500;
 // ESP8266 embarcado (opcional)
 // ---------------------------------------------------------------------------
 // Na placa Mega+ESP8266 o modulo ESP fica na Serial3, habilitado pelas chaves
-// DIP. Mantenha 0 enquanto nao usar o Wi-Fi.
-#define USAR_ESP8266 0
+// DIP. E por ele que o app do celular conversa com a cadeira: o ESP8266 manda
+// os comandos do app e recebe a telemetria em JSON (firmware/app_wifi/).
+// Com 0, o Mega ignora a Serial3 e o app fica sem efeito.
+#define USAR_ESP8266 1
 #define SERIAL_ESP Serial3
 const long BAUD_ESP = 115200;
+
+// Intervalo da telemetria enviada ao app. Mais curto que o da serial de
+// depuracao para a tela do celular acompanhar a rampa de velocidade.
+const unsigned long TELEMETRIA_APP_MS = 200;
 
 #endif  // CONFIG_H

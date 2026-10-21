@@ -13,15 +13,22 @@ computador, sem a placa.
 make -C testes
 ```
 
-O comando faz três coisas:
+O comando faz quatro coisas:
 
 1. roda os 40 testes da máquina de estados;
-2. compila o firmware inteiro com um substituto da API do Arduino, o que
-   pega erro de sintaxe e de tipo antes de abrir o IDE;
-3. compila a ferramenta de treinamento do mesmo jeito.
+2. roda os 40 testes da ligação com o app do celular (`test_app.cpp`): o
+   protocolo serial, cada botão do app chegando ao Mega como o comando
+   certo, a trava do ESP8266 que para a cadeira quando o app some e a
+   telemetria voltando ao app;
+3. compila o firmware inteiro com um substituto da API do Arduino, o que
+   pega erro de sintaxe e de tipo antes de abrir o IDE, e confere que o texto
+   de boot do ESP8266 não move a cadeira e que um comando do app dado
+   durante a emergência é descartado;
+4. compila a ferramenta de treinamento do mesmo jeito.
 
-O substituto da API fica em `testes/stub_arduino/`. Ele não vai para a
-placa: existe só para a verificação no PC.
+Os substitutos da API ficam em `testes/stub_arduino/` e
+`testes/stub_esp8266/`. Eles não vão para a placa: existem só para a
+verificação no PC.
 
 ### O que cada grupo de testes cobre
 

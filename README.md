@@ -5,7 +5,8 @@ movimenta por comandos de voz, com travas de segurança e detecção de
 obstáculo.
 
 O reconhecimento é feito no próprio módulo embarcado, sem internet e sem
-servidor.
+servidor. A cadeira também pode ser comandada por um app no celular, ligado
+direto ao Wi-Fi da própria placa.
 
 ## Componentes
 
@@ -30,6 +31,20 @@ servidor.
 
 São sete porque o módulo V3 reconhece no máximo sete registros ao mesmo
 tempo, embora guarde até 80 na memória.
+
+## App do celular
+
+O ESP8266 da placa cria a rede Wi-Fi **Cadeira-TCC** (senha `cadeira123`).
+Conecte o celular nela e abra **http://192.168.4.1** no navegador. Não
+precisa instalar nada nem ter internet.
+
+O app tem os mesmos comandos da voz, em botões de "segure para andar", e
+mostra em tempo real o estado da cadeira, o PWM de cada roda, o nível de
+velocidade, o aviso de obstáculo e a situação da ligação com a cadeira.
+Os comandos do app passam pela mesma máquina de estados da voz, então todas
+as travas abaixo valem para ele. Se o Wi-Fi cair, a cadeira para.
+
+Gravação e detalhes em `docs/app_celular.md`.
 
 ## Segurança
 
@@ -60,6 +75,11 @@ firmware/cadeira_voz/     firmware principal
   motores.h / .cpp          ponte H L298N
   sensor_obstaculo.h/.cpp   sensor IR com filtro de ruído
   vr3.h / .cpp              driver do módulo de voz
+  protocolo_app.h / .cpp    leitura dos comandos do app, sem Arduino
+
+firmware/app_wifi/        firmware do ESP8266: Wi-Fi e app do celular
+  app_wifi.ino              ponte entre o celular e o Mega
+  pagina.h                  a página do app (HTML, CSS e JavaScript)
 
 firmware/treinar_voz/     ferramenta de gravação dos comandos
 testes/                   testes que rodam no PC, sem hardware
@@ -102,7 +122,12 @@ Para gravar a ferramenta de treinamento em vez do firmware, troque a linha
 O Monitor Serial em 115200 mostra a telemetria: estado atual, PWM de cada
 roda, nível de velocidade, situação do sensor e motivo da última parada.
 
-### 4. Testar sem falar
+### 4. Gravar o app do celular (opcional)
+
+O ESP8266 recebe um firmware próprio, gravado uma única vez com outra
+posição das chaves DIP. O passo a passo está em `docs/app_celular.md`.
+
+### 5. Testar sem falar
 
 Com `MODO_SIMULACAO` ligado, que é o padrão, os comandos também aceitam
 teclado pelo Monitor Serial:
@@ -129,9 +154,10 @@ computador:
 make -C testes
 ```
 
-Isso executa os 40 testes da máquina de estados e depois compila o firmware
-inteiro e a ferramenta de treinamento usando um substituto da API do
-Arduino, o que pega erro de compilação antes de abrir o IDE.
+Isso executa os 40 testes da máquina de estados, os 40 testes da ligação com
+o app do celular e depois compila o firmware inteiro e a ferramenta de
+treinamento usando um substituto da API do Arduino, o que pega erro de
+compilação antes de abrir o IDE.
 
 Um desses testes encontrou um defeito real durante o desenvolvimento: na
 desaceleração, o PWM pulava de +2 para -6 sem passar por zero, invertendo a
@@ -149,7 +175,7 @@ Em `firmware/cadeira_voz/config.h`:
 | `INVERTER_MOTOR_ESQ` / `_DIR` | corrigir roda girando ao contrário sem trocar fio |
 | `NIVEL_IR_DETECTADO` | adaptar a sensor que responde em nível alto |
 | `MODO_SIMULACAO` | ligar ou desligar o controle por teclado |
-| `USAR_ESP8266` | publicar telemetria em JSON na Serial3 |
+| `USAR_ESP8266` | ligar o app do celular, pelo ESP8266 na Serial3 |
 
 Em `firmware/cadeira_voz/controle.h`:
 
@@ -173,6 +199,7 @@ completa está em `docs/tcc_apoio.md`.
 ## Documentação
 
 - `docs/ligacoes.md` - fiação, alimentação e diagrama de blocos
+- `docs/app_celular.md` - app do celular: uso, segurança, gravação do ESP8266
 - `docs/treinamento_vr3.md` - gravação dos comandos e protocolo do módulo
 - `docs/testes_e_validacao.md` - testes no PC e roteiro de ensaios
 - `docs/tcc_apoio.md` - objetivos, metodologia, limitações e trabalhos futuros

@@ -122,29 +122,37 @@ de gravar o ESP8266. Nessa posição o computador enxerga a porta serial
 normalmente, mas o ATmega2560 nunca responde, porque o cabo está ligado no
 outro chip.
 
-Para o uso normal deste projeto: **apenas as chaves 3 e 4 ligadas**.
+Para gravar o Mega: **apenas as chaves 3 e 4 ligadas**.
+
+Para usar o app do celular, as chaves **1 e 2** também precisam estar
+ligadas, porque é por elas que o Mega e o ESP8266 conversam. Veja
+`docs/app_celular.md`.
 
 ## 7. ESP8266 embarcado
 
 A placa Mega 2560 + ESP8266 traz o ESP ligado à `Serial3` por chaves DIP.
-O firmware já publica a telemetria em JSON nessa porta, mas o recurso vem
-desligado: mude `USAR_ESP8266` para `1` em `config.h` quando for usar.
+O ESP8266 roda o firmware `firmware/app_wifi`, que cria a rede Wi-Fi
+"Cadeira-TCC" e serve o app de controle pelo celular. Ele manda os comandos
+do app ao Mega e recebe a telemetria em JSON. `USAR_ESP8266` já vem `1` em
+`config.h`. Passo a passo em `docs/app_celular.md`.
 
-Deixe o Wi-Fi fora do caminho de segurança. Comando por rede introduz atraso
-e perda de pacote, e este protótipo depende de tempo de resposta previsível
-para parar.
+O Wi-Fi fica fora do caminho de segurança para parar. Comando por rede tem
+atraso e perda de pacote, então o app só consegue pedir movimento pela mesma
+máquina de estados da voz, e qualquer falha de rede termina em parada: o
+ESP8266 para a cadeira se a repetição do app some por 1 s, e o homem-morto
+de 3 s do Mega não depende do ESP.
 
 ## 8. Diagrama de blocos
 
 ```
-      voz do usuário
-            |
-            v
-  +---------------------+
-  | Módulo de voz V3    |
-  +---------------------+
-            | Serial1 (9600 bps)
-            v
+      voz do usuário              celular (app)
+            |                           | Wi-Fi "Cadeira-TCC"
+            v                           v
+  +---------------------+     +---------------------+
+  | Módulo de voz V3    |     | ESP8266 da placa    |
+  +---------------------+     +---------------------+
+            | Serial1 (9600 bps)        | Serial3 (115200 bps)
+            v                           v  chaves DIP 1 e 2
   +-------------------------------+       +--------------------+
   | Arduino Mega 2560             |<------| Sensor IR (pino 2) |
   |                               |       +--------------------+

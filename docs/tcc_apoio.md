@@ -131,8 +131,10 @@ Registre com honestidade. Esta seção costuma render boa discussão na banca.
 - Sensor apontado para baixo, para detectar degrau.
 - Confirmação por voz nos comandos de avanço, no modelo "frente" seguido de
   "confirma".
-- Uso do ESP8266 para registro remoto de telemetria e acompanhamento por
-  cuidador, mantendo o Wi-Fi fora do caminho de segurança.
+- Ampliar o app do celular (`docs/app_celular.md`), que hoje controla a
+  cadeira e mostra a telemetria pela rede local, com registro histórico e
+  acompanhamento à distância por cuidador, mantendo o Wi-Fi fora do caminho
+  de segurança.
 - Estudo com mais de um locutor para medir a queda de desempenho.
 
 ## Como citar o funcionamento no texto

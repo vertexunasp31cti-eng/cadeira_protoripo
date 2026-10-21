@@ -1,6 +1,6 @@
 # Testes da logica de controle, executados no PC (sem hardware).
 #
-#   make          compila e roda os testes
+#   make          compila e roda os testes (cadeira, app e compilacao)
 #   make limpar   apaga os arquivos gerados
 
 CXX      ?= g++
@@ -15,13 +15,20 @@ TRE_FONTES := compila_treinador.cpp stub_arduino/Arduino.cpp
 VER_ALVO   := $(DIR)/compila_firmware
 VER_FONTES := compila_firmware.cpp stub_arduino/Arduino.cpp \
               ../firmware/cadeira_voz/controle.cpp \
+              ../firmware/cadeira_voz/protocolo_app.cpp \
               ../firmware/cadeira_voz/motores.cpp \
               ../firmware/cadeira_voz/sensor_obstaculo.cpp \
               ../firmware/cadeira_voz/vr3.cpp
 
-.PHONY: all rodar verificar limpar
+# Ligacao app -> ESP8266 -> Mega, com stubs do Wi-Fi e do servidor HTTP.
+APP_ALVO   := $(DIR)/test_app
+APP_FONTES := test_app.cpp stub_arduino/Arduino.cpp \
+              ../firmware/cadeira_voz/controle.cpp \
+              ../firmware/cadeira_voz/protocolo_app.cpp
 
-all: rodar verificar
+.PHONY: all rodar app verificar limpar
+
+all: rodar app verificar
 
 $(ALVO): $(FONTES) ../firmware/cadeira_voz/controle.h
 	@mkdir -p $(DIR)
@@ -30,8 +37,16 @@ $(ALVO): $(FONTES) ../firmware/cadeira_voz/controle.h
 rodar: $(ALVO)
 	@./$(ALVO)
 
+$(APP_ALVO): $(APP_FONTES) ../firmware/app_wifi/app_wifi.ino \
+             ../firmware/app_wifi/pagina.h ../firmware/cadeira_voz/protocolo_app.h
+	@mkdir -p $(DIR)
+	$(CXX) $(CXXFLAGS) -I stub_arduino -I stub_esp8266 -o $@ $(APP_FONTES)
+
+app: $(APP_ALVO)
+	@./$(APP_ALVO)
+
 # Compila o firmware inteiro no PC com o stub da API do Arduino.
-$(VER_ALVO): $(VER_FONTES)
+$(VER_ALVO): $(VER_FONTES) ../firmware/cadeira_voz/cadeira_voz.ino
 	@mkdir -p $(DIR)
 	$(CXX) $(CXXFLAGS) -I stub_arduino -x c++ -o $@ $(VER_FONTES)
 

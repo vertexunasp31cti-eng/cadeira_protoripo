@@ -23,6 +23,10 @@
  *    5. Rampa de aceleracao e passagem obrigatoria por zero na inversao.
  *    6. Giro sempre como pulso curto e temporizado.
  *
+ *  Controle pelo celular (opcional): o ESP8266 da placa cria a rede Wi-Fi
+ *  "Cadeira-TCC" e serve o app em http://192.168.4.1. Os comandos do app
+ *  chegam pela Serial3 e passam pelas mesmas travas da voz.
+ *
  *  A logica de decisao esta em controle.cpp, sem dependencia do Arduino, e e
  *  verificada por testes automatizados no PC (pasta testes/).
  * ===========================================================================
@@ -31,6 +35,7 @@
 #include "config.h"
 #include "controle.h"
 #include "motores.h"
+#include "protocolo_app.h"
 #include "sensor_obstaculo.h"
 #include "vr3.h"
 
@@ -44,6 +49,17 @@ VR3 voz(SERIAL_VOZ);
 
 bool voz_pronta = false;
 unsigned long t_telemetria = 0;
+
+#if USAR_ESP8266
+LeitorProtocoloApp leitor_app;
+unsigned long t_telemetria_app = 0;
+
+// O app repete o comando de movimento enquanto o botao esta apertado. A
+// repeticao so renova o homem-morto: nao apita nem enche o Monitor Serial.
+const unsigned long JANELA_REPETICAO_APP_MS = 1000;
+Comando ultimo_cmd_app = CMD_NENHUM;
+unsigned long t_ultimo_cmd_app = 0;
+#endif
 
 // ---------------------------------------------------------------------------
 // Sinalizacao sonora e visual
@@ -129,6 +145,54 @@ Comando lerComandoDigitado() {
 #endif
 
 // ---------------------------------------------------------------------------
+// Comandos vindos do app do celular, pelo ESP8266 na Serial3
+// ---------------------------------------------------------------------------
+#if USAR_ESP8266
+Comando lerComandoApp() {
+  // Le tudo o que chegou, mas devolve no maximo um comando por volta do laco,
+  // como fazem a voz e o teclado.
+  while (SERIAL_ESP.available()) {
+    Comando c = leitor_app.alimentar((char)SERIAL_ESP.read());
+    if (c != CMD_NENHUM) return c;
+  }
+  return CMD_NENHUM;
+}
+
+// Joga fora o que o app mandou enquanto o botao de emergencia estava
+// apertado. Sem isso, um "frente" tocado durante a emergencia ficaria
+// guardado na serial e seria executado assim que o botao fosse solto.
+void descartarComandosApp() {
+  while (SERIAL_ESP.available()) leitor_app.alimentar((char)SERIAL_ESP.read());
+}
+
+// Uma linha JSON por envio. O ESP8266 guarda a ultima e entrega ao app.
+void telemetriaApp(unsigned long agora, bool emergencia) {
+  if (agora - t_telemetria_app < TELEMETRIA_APP_MS) return;
+  t_telemetria_app = agora;
+
+  SERIAL_ESP.print(F("{\"estado\":\""));
+  SERIAL_ESP.print(nomeEstado(controle.estado()));
+  SERIAL_ESP.print(F("\",\"pwmEsq\":"));
+  SERIAL_ESP.print(controle.pwmEsquerdo());
+  SERIAL_ESP.print(F(",\"pwmDir\":"));
+  SERIAL_ESP.print(controle.pwmDireito());
+  SERIAL_ESP.print(F(",\"nivel\":"));
+  SERIAL_ESP.print(controle.nivelVelocidade() + 1);
+  SERIAL_ESP.print(F(",\"obstaculo\":"));
+  SERIAL_ESP.print(controle.obstaculoDetectado() ? 1 : 0);
+  SERIAL_ESP.print(F(",\"emergencia\":"));
+  SERIAL_ESP.print(emergencia ? 1 : 0);
+  SERIAL_ESP.print(F(",\"voz\":"));
+  SERIAL_ESP.print(voz_pronta ? 1 : 0);
+  SERIAL_ESP.print(F(",\"recusado\":"));
+  SERIAL_ESP.print(controle.ultimoComandoRecusado() ? 1 : 0);
+  SERIAL_ESP.print(F(",\"motivo\":\""));
+  SERIAL_ESP.print(nomeMotivo(controle.motivoUltimaParada()));
+  SERIAL_ESP.println(F("\"}"));
+}
+#endif
+
+// ---------------------------------------------------------------------------
 void mostrarAjuda() {
   SERIAL_DEBUG.println(F("==================================================="));
   SERIAL_DEBUG.println(F(" Cadeira de rodas com comando de voz - prototipo"));
@@ -137,6 +201,9 @@ void mostrarAjuda() {
   SERIAL_DEBUG.println(F("           parar | rapido | devagar"));
 #if MODO_SIMULACAO
   SERIAL_DEBUG.println(F(" Teclado:  f t e d p (espaco=parar) + -"));
+#endif
+#if USAR_ESP8266
+  SERIAL_DEBUG.println(F(" App:      Wi-Fi \"Cadeira-TCC\", abra 192.168.4.1"));
 #endif
   SERIAL_DEBUG.println(F("---------------------------------------------------"));
 }
@@ -157,24 +224,16 @@ void telemetria(unsigned long agora) {
   SERIAL_DEBUG.print(controle.obstaculoDetectado() ? F("SIM") : F("nao"));
   SERIAL_DEBUG.print(F("  ultima parada: "));
   SERIAL_DEBUG.println(nomeMotivo(controle.motivoUltimaParada()));
-
-#if USAR_ESP8266
-  SERIAL_ESP.print(F("{\"estado\":\""));
-  SERIAL_ESP.print(nomeEstado(controle.estado()));
-  SERIAL_ESP.print(F("\",\"pwmEsq\":"));
-  SERIAL_ESP.print(controle.pwmEsquerdo());
-  SERIAL_ESP.print(F(",\"pwmDir\":"));
-  SERIAL_ESP.print(controle.pwmDireito());
-  SERIAL_ESP.print(F(",\"obstaculo\":"));
-  SERIAL_ESP.print(controle.obstaculoDetectado() ? 1 : 0);
-  SERIAL_ESP.println('}');
-#endif
 }
 
-void tratarComando(Comando c, unsigned long agora, const char* origem) {
+void tratarComando(Comando c, unsigned long agora, const char* origem,
+                   bool avisar) {
   if (c == CMD_NENHUM) return;
 
   bool aceito = controle.aplicarComando(c, agora);
+
+  // Comando repetido e aceito passa em silencio. Recusa sempre avisa.
+  if (!avisar && aceito) return;
 
   SERIAL_DEBUG.print(F("> comando "));
   SERIAL_DEBUG.print(nomeComando(c));
@@ -227,6 +286,11 @@ void setup() {
     bipDeInicializacao(60);
   }
   t_telemetria = millis();
+#if USAR_ESP8266
+  // Descarta o texto que o ESP8266 despeja ao ligar, que chegou durante o
+  // setup e nao e comando.
+  while (SERIAL_ESP.available()) SERIAL_ESP.read();
+#endif
 }
 
 void loop() {
@@ -237,6 +301,12 @@ void loop() {
     controle.pararEmergencia(agora);
     motores.aplicar(0, 0);
     digitalWrite(PINO_LED, HIGH);
+#if USAR_ESP8266
+    // O app continua sabendo o que acontece, mas nenhum comando dele vale
+    // enquanto o botao estiver apertado.
+    descartarComandosApp();
+    telemetriaApp(agora, true);
+#endif
     return;
   }
 
@@ -244,20 +314,37 @@ void loop() {
   if (voz_pronta) {
     int registro = voz.lerReconhecimento();
     if (registro >= 0 && registro < CMD_TOTAL) {
-      tratarComando((Comando)registro, agora, "voz");
+      tratarComando((Comando)registro, agora, "voz", true);
     }
   }
 
   // 3) Comandos digitados (bancada e demonstracao).
 #if MODO_SIMULACAO
-  tratarComando(lerComandoDigitado(), agora, "teclado");
+  tratarComando(lerComandoDigitado(), agora, "teclado", true);
 #endif
 
-  // 4) Sensor, maquina de estados e saida para os motores.
+  // 4) Comandos do app do celular, pelo ESP8266. Passam pela mesma maquina de
+  //    estados, entao valem as mesmas travas de seguranca da voz.
+#if USAR_ESP8266
+  Comando cmd_app = lerComandoApp();
+  if (cmd_app != CMD_NENHUM) {
+    bool repetido = cmd_app == ultimo_cmd_app &&
+                    (agora - t_ultimo_cmd_app) < JANELA_REPETICAO_APP_MS &&
+                    controle.estado() != EST_PARADA;
+    ultimo_cmd_app = cmd_app;
+    t_ultimo_cmd_app = agora;
+    tratarComando(cmd_app, agora, "app", !repetido);
+  }
+#endif
+
+  // 5) Sensor, maquina de estados e saida para os motores.
   bool obstaculo = sensor.atualizar(agora);
   controle.atualizar(agora, obstaculo);
   motores.aplicar(controle.pwmEsquerdo(), controle.pwmDireito());
 
   atualizarSinalizacao(agora);
   telemetria(agora);
+#if USAR_ESP8266
+  telemetriaApp(agora, false);
+#endif
 }
