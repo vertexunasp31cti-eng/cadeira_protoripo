@@ -5,11 +5,13 @@ movimenta por comandos de voz, com travas de segurança e detecção de
 obstáculo.
 
 O reconhecimento é feito no próprio módulo embarcado, sem internet e sem
-servidor.
+servidor. Um app no celular acompanha e comanda a cadeira pela rede Wi-Fi da
+própria placa, também sem internet.
 
 ## Componentes
 
-- Placa compatível Arduino Mega 2560 + ESP8266 (CH340)
+- Placa compatível Arduino Mega 2560 + ESP8266 (CH340): o Mega controla a
+  cadeira e o ESP8266 cria a rede Wi-Fi e serve o app
 - Módulo de Reconhecimento de Voz V3
 - Ponte H dupla L298N
 - Sensor de obstáculo reflexivo infravermelho
@@ -50,20 +52,52 @@ funcionar.
 
 Toda trava tem teste automatizado correspondente.
 
+O app não abre exceção a nenhuma delas: o comando do celular passa pela mesma
+máquina de estados da voz, e perder o Wi-Fi nunca deixa a cadeira andando. As
+proteções próprias do app estão em `docs/app_integracao.md`, seção 5.
+
+## App do celular
+
+O ESP8266 da placa cria a rede Wi-Fi **Cadeira-TCC** (senha `cadeira123`) e
+serve o app em **http://192.168.4.1**. Basta entrar na rede pelo celular e
+abrir o endereço no navegador; muitos celulares abrem o app sozinhos.
+
+- **Painel**: estado da cadeira ao vivo, PWM de cada roda, sensor, alertas e
+  o botão PARAR sempre ativo.
+- **Controle**: começa bloqueado. Liberado, Frente e Ré andam só enquanto o
+  dedo está no botão; soltou, parou.
+- **Histórico**: cada comando (voz, teclado ou app), parada, obstáculo e
+  emergência, com horário.
+- **Sobre o TCC**: o projeto resumido, para a apresentação.
+- **Demonstração**: sem a cadeira, o app simula uma no navegador.
+
+Como gravar o ESP8266, a posição das chaves DIP, o protocolo, a API e o
+simulador estão em `docs/app_integracao.md`.
+
 ## Estrutura do repositório
 
 ```
-firmware/cadeira_voz/     firmware principal
+firmware/cadeira_voz/     firmware principal, no Mega
   cadeira_voz.ino           laço principal e integração
   config.h                  mapa de pinos e opções
   controle.h / .cpp         máquina de estados, sem dependência do Arduino
+  protocolo_app.h / .cpp    conversa com o ESP8266, sem dependência do Arduino
   motores.h / .cpp          ponte H L298N
   sensor_obstaculo.h/.cpp   sensor IR com filtro de ruído
   vr3.h / .cpp              driver do módulo de voz
 
+firmware/esp_wifi/        firmware do ESP8266: Wi-Fi, servidor do app e ponte
+  esp_wifi.ino              rede, rotas HTTP e serial
+  ponte.h / .cpp            regras da ponte, sem dependência do Arduino
+  config_wifi.h             nome e senha da rede
+  pagina.h                  o app compactado (gerado, não edite)
+
+app/index.html            o app do celular
+ferramentas/              gerar_pagina.py: embute o app no firmware do ESP
 firmware/treinar_voz/     ferramenta de gravação dos comandos
 testes/                   testes que rodam no PC, sem hardware
-docs/                     ligações, treinamento, ensaios e apoio ao TCC
+  simulador/                os dois firmwares e o app rodando no PC
+docs/                     ligações, treinamento, app, ensaios e apoio ao TCC
 ```
 
 ## Como usar
@@ -102,7 +136,16 @@ Para gravar a ferramenta de treinamento em vez do firmware, troque a linha
 O Monitor Serial em 115200 mostra a telemetria: estado atual, PWM de cada
 roda, nível de velocidade, situação do sensor e motivo da última parada.
 
-### 4. Testar sem falar
+### 4. Gravar o ESP8266 e abrir o app
+
+Grave `firmware/esp_wifi/esp_wifi.ino` no ESP8266 da placa, com as chaves DIP
+5, 6 e 7 ligadas. Depois deixe ligadas só as chaves 1 e 2, que ligam o Mega
+ao ESP. O passo a passo, no Arduino IDE e no PlatformIO, está em
+`docs/app_integracao.md`, seção 3.
+
+No celular, entre na rede **Cadeira-TCC** e abra **http://192.168.4.1**.
+
+### 5. Testar sem falar
 
 Com `MODO_SIMULACAO` ligado, que é o padrão, os comandos também aceitam
 teclado pelo Monitor Serial:
@@ -118,7 +161,8 @@ teclado pelo Monitor Serial:
 | `-` | mais devagar |
 
 Isso permite ajustar a mecânica antes de treinar a voz, e serve de plano B na
-apresentação se o ambiente estiver barulhento demais.
+apresentação se o ambiente estiver barulhento demais. O app no celular é
+outro plano B.
 
 ## Testes automatizados
 
@@ -129,9 +173,20 @@ computador:
 make -C testes
 ```
 
-Isso executa os 40 testes da máquina de estados e depois compila o firmware
-inteiro e a ferramenta de treinamento usando um substituto da API do
-Arduino, o que pega erro de compilação antes de abrir o IDE.
+Isso roda, sem nenhuma placa:
+
+- os testes da máquina de estados, com cada trava de segurança;
+- os testes do protocolo do Mega e da ponte do ESP8266, e um teste que liga
+  o código real dos dois lados;
+- a compilação dos dois firmwares e da ferramenta de treinamento com
+  substitutos das bibliotecas, o que pega erro antes de abrir o IDE;
+- ensaios do sketch inteiro do Mega, com bytes chegando pela serial e o
+  sensor e o botão simulados, em três configurações;
+- a conferência de que o app embutido no ESP é o mesmo de `app/index.html`.
+
+Para ver o app funcionando no computador contra os dois firmwares reais,
+use o simulador: `python3 testes/simulador/servidor.py` e abra
+http://localhost:8000. Detalhes em `docs/app_integracao.md`, seção 7.
 
 Um desses testes encontrou um defeito real durante o desenvolvimento: na
 desaceleração, o PWM pulava de +2 para -6 sem passar por zero, invertendo a
@@ -140,7 +195,7 @@ ponte H com o motor ainda girando. Está descrito em
 
 ## Ajustes comuns
 
-Todos os parâmetros ficam em dois arquivos.
+Os parâmetros ficam em três arquivos.
 
 Em `firmware/cadeira_voz/config.h`:
 
@@ -149,7 +204,9 @@ Em `firmware/cadeira_voz/config.h`:
 | `INVERTER_MOTOR_ESQ` / `_DIR` | corrigir roda girando ao contrário sem trocar fio |
 | `NIVEL_IR_DETECTADO` | adaptar a sensor que responde em nível alto |
 | `MODO_SIMULACAO` | ligar ou desligar o controle por teclado |
-| `USAR_ESP8266` | publicar telemetria em JSON na Serial3 |
+| `USAR_ESP8266` | conversar com o ESP8266 e o app (ligado por padrão) |
+| `PERMITIR_COMANDO_APP` | 0 deixa o app só acompanhando; "parar" continua valendo |
+| `TELEMETRIA_APP_MS` | intervalo do estado enviado ao app |
 
 Em `firmware/cadeira_voz/controle.h`:
 
@@ -162,17 +219,25 @@ Em `firmware/cadeira_voz/controle.h`:
 | `AJUSTE_ESQ_PCT` / `_DIR_PCT` | corrigir a cadeira que puxa para um lado |
 | `RAMPA_PASSO` | suavidade da partida |
 
+Em `firmware/esp_wifi/config_wifi.h`:
+
+| Parâmetro | Para quê |
+|-----------|----------|
+| `NOME_REDE` / `SENHA_REDE` | nome e senha da rede Wi-Fi da cadeira; troque a senha |
+
 ## Limitações
 
 Este é um protótipo em escala reduzida, feito para demonstrar o princípio de
 controle. Ele não transporta pessoa. O reconhecimento depende da voz de quem
 treinou, o vocabulário é de sete palavras e o sensor infravermelho enxerga
-mal superfícies pretas foscas e vidro, além de não detectar degraus. A lista
-completa está em `docs/tcc_apoio.md`.
+mal superfícies pretas foscas e vidro, além de não detectar degraus. O app
+só funciona com o celular na rede da cadeira, dentro do alcance do Wi-Fi do
+ESP8266. A lista completa está em `docs/tcc_apoio.md`.
 
 ## Documentação
 
 - `docs/ligacoes.md` - fiação, alimentação e diagrama de blocos
 - `docs/treinamento_vr3.md` - gravação dos comandos e protocolo do módulo
+- `docs/app_integracao.md` - app do celular, ESP8266, protocolo, API e simulador
 - `docs/testes_e_validacao.md` - testes no PC e roteiro de ensaios
 - `docs/tcc_apoio.md` - objetivos, metodologia, limitações e trabalhos futuros

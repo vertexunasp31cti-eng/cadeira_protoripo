@@ -122,36 +122,54 @@ de gravar o ESP8266. Nessa posição o computador enxerga a porta serial
 normalmente, mas o ATmega2560 nunca responde, porque o cabo está ligado no
 outro chip.
 
-Para o uso normal deste projeto: **apenas as chaves 3 e 4 ligadas**.
+Posições para este projeto:
+
+| Situação | Chaves ligadas |
+|----------|----------------|
+| Gravar o firmware no Mega | 3 e 4 |
+| Gravar o ESP8266 | 5, 6 e 7 |
+| Usar a cadeira com o app | 1 e 2 |
+| Usar com o app e ver o Monitor Serial do Mega | 1, 2, 3 e 4 |
+
+As duas últimas linhas seguem os rótulos da placa, mas ainda precisam ser
+confirmadas em bancada, como foi feito com a tabela acima. Sem o app, para
+só gravar e testar o Mega pelo teclado, bastam as chaves 3 e 4.
+
+Algumas placas têm também uma chave deslizante que escolhe qual serial do
+Mega vai para o ESP. Se a sua tiver, deixe em `RXD3/TXD3`.
 
 ## 7. ESP8266 embarcado
 
-A placa Mega 2560 + ESP8266 traz o ESP ligado à `Serial3` por chaves DIP.
-O firmware já publica a telemetria em JSON nessa porta, mas o recurso vem
-desligado: mude `USAR_ESP8266` para `1` em `config.h` quando for usar.
+A placa Mega 2560 + ESP8266 traz o ESP ligado à `Serial3` do Mega pelas
+chaves DIP 1 e 2. O ESP8266 tem firmware próprio, em `firmware/esp_wifi/`:
+ele cria a rede Wi-Fi da cadeira, serve o app do celular e repassa os
+comandos ao Mega. O recurso vem ligado (`USAR_ESP8266 1` em `config.h`); com
+`0`, a Serial3 fica em silêncio.
 
-Deixe o Wi-Fi fora do caminho de segurança. Comando por rede introduz atraso
+O Wi-Fi fica fora do caminho de segurança. Comando por rede introduz atraso
 e perda de pacote, e este protótipo depende de tempo de resposta previsível
-para parar.
+para parar. Por isso o ESP só repassa pedidos: quem decide é o Mega, pela
+mesma máquina de estados da voz, e se a rede cair o homem-morto para a
+cadeira em até 3 s. Os detalhes estão em `docs/app_integracao.md`.
 
 ## 8. Diagrama de blocos
 
 ```
-      voz do usuário
-            |
-            v
-  +---------------------+
-  | Módulo de voz V3    |
-  +---------------------+
-            | Serial1 (9600 bps)
-            v
-  +-------------------------------+       +--------------------+
-  | Arduino Mega 2560             |<------| Sensor IR (pino 2) |
-  |                               |       +--------------------+
-  |  máquina de estados +         |
+      voz do usuário                     celular (app)
+            |                                  |
+            v                                  | Wi-Fi "Cadeira-TCC"
+  +---------------------+            +---------------------+
+  | Módulo de voz V3    |            | ESP8266 da placa    |
+  +---------------------+            +---------------------+
+            | Serial1 (9600 bps)               | Serial3 (115200 bps)
+            v                                  | ida e volta, chaves DIP 1 e 2
+  +-------------------------------+<-----------+
+  | Arduino Mega 2560             |       +--------------------+
+  |                               |<------| Sensor IR (pino 2) |
+  |  máquina de estados +         |       +--------------------+
   |  travas de segurança          |<------| Botão emergência (3)|
   +-------------------------------+
-            | PWM 5/6  + sentido 22..25
+            | PWM 5/6  + sentido 32..35
             v
   +---------------------+        +------------------------+
   | Ponte H L298N       |------->| 2 motores DC + rodas   |

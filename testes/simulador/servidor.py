@@ -14,8 +14,8 @@ Uso:
     python3 testes/simulador/servidor.py --porta 8080
     python3 testes/simulador/servidor.py --rede     # aceita o celular na mesma rede
 
-Os binarios sao compilados com "make -C testes simulador" na primeira vez
-(precisa de g++ e make). So biblioteca padrao do Python.
+Os binarios sao compilados com "make -C testes simulador" sempre que algo
+mudou (precisa de g++ e make). So biblioteca padrao do Python.
 
 Controles da simulacao (no navegador, ou com curl):
 
@@ -166,13 +166,13 @@ class Simulacao:
     # --- Controles da simulacao -------------------------------------------------
     def controlar(self, acao, valor):
         if acao == "obstaculo":
-            self.obstaculo = valor
+            self.obstaculo = bool(valor)
             self.mega.enviar("O %d" % valor)
         elif acao == "emergencia":
-            self.emergencia = valor
+            self.emergencia = bool(valor)
             self.mega.enviar("E %d" % valor)
         elif acao == "mega_desligado":
-            self.mega_desligado = valor
+            self.mega_desligado = bool(valor)
         elif acao == "reiniciar_esp":
             self.esp.desligar()
             if not self.mega_desligado:
@@ -260,11 +260,10 @@ def main(argv=None):
                    help="mostra a Serial de depuracao do Mega")
     args = p.parse_args(argv)
 
-    padrao = args.mega == MEGA_PADRAO and args.esp == ESP_PADRAO
-    if padrao and not compilar():
-        print("simulador: nao consegui compilar com \"make -C testes "
-              "simulador\" (precisa de g++ e make).", file=sys.stderr)
-        return 1
+    # O make so recompila o que mudou; sem g++ ou make, usa o que ja existe.
+    if not compilar():
+        print("simulador: nao consegui rodar \"make -C testes simulador\" "
+              "(precisa de g++ e make).", file=sys.stderr)
     for caminho in (args.mega, args.esp):
         if not os.path.isfile(caminho):
             print("simulador: binario nao encontrado: %s" % caminho,
