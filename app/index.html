@@ -148,6 +148,12 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0 .35em; border: 1px sol
 .painel { display: grid; gap: 16px; }
 .col { display: contents; }
 .alertas { order: 1; } .cartao-estado { order: 2; } .cartao-controle { order: 3; } .cartao-sim { order: 4; } .cartao-medidas { order: 5; } .diag { order: 6; }
+/* Dirigindo pelo app, o direcional vem logo depois dos alertas: abaixo do
+   cartao de estado, com um alerta na tela, ele ficava atras do PARAR. */
+@media (max-width: 1099px) {
+  .controle-livre .cartao-controle { order: 2; }
+  .controle-livre .cartao-estado { order: 3; }
+}
 .alertas { display: grid; gap: 10px; }
 .alertas.sem-alerta { position: absolute; }
 .faixa { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 14px; }
@@ -460,6 +466,19 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0 .35em; border: 1px sol
   .tracao { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 4px; }
   .cadeira { order: -1; grid-column: 1 / -1; justify-self: center; }
 }
+/* Celular em pe: alertas mais baixos e, em tela curta, teclas menores, para
+   o direcional inteiro caber acima do PARAR sem rolar a tela. */
+@media (max-width: 699px) {
+  .faixa { padding: 10px 14px; gap: 10px; }
+  .faixa .ic { width: 22px; height: 22px; }
+  .faixa strong { font-size: 16px; }
+  .faixa span { font-size: 14px; line-height: 1.3; }
+}
+@media (max-width: 699px) and (max-height: 780px) {
+  .tecla { min-height: 58px; }
+  .dpad { gap: 8px; }
+  .faixa-info span { display: none; }
+}
 @media (max-width: 420px) {
   .marca svg { display: none; }
   .marca h1 { font-size: 18px; }
@@ -550,7 +569,7 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0 .35em; border: 1px sol
       <div id="alertas" class="alertas sem-alerta" aria-live="assertive">
         <div id="alerta-emergencia" class="faixa faixa-critico" hidden><svg class="ic" aria-hidden="true"><use href="#i-octogono"/></svg><div><strong>EMERGÊNCIA</strong><span>Botão de emergência acionado. A cadeira fica parada e ignora comandos enquanto ele estiver apertado.</span></div></div>
         <div id="alerta-obstaculo" class="faixa faixa-alerta" hidden><svg class="ic" aria-hidden="true"><use href="#i-triangulo"/></svg><div><strong>OBSTÁCULO À FRENTE</strong><span>A cadeira não avança. A ré continua liberada.</span></div></div>
-        <div id="alerta-voz" class="faixa faixa-info" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><div><strong>Módulo de voz indisponível</strong><span>A cadeira não está ouvindo comandos de voz. Confira se o TX do módulo está no pino 19 e o RX no 18.</span></div></div>
+        <div id="alerta-voz" class="faixa faixa-info" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><div><strong>Módulo de voz indisponível</strong><span>Sem comandos de voz. Confira o TX do módulo no pino 19 e o RX no 18.</span></div></div>
       </div>
 
       <article id="cartao-estado" class="cartao-estado" aria-labelledby="estado-nome">
@@ -1367,6 +1386,7 @@ function renderControles() {
   usar($("trava-icone"), E.travado ? "i-fechado" : "i-aberto");
   $("nota-app").hidden = !soAcompanha;
   $("comandos").hidden = E.travado;
+  document.body.classList.toggle("controle-livre", !E.travado);
 
   const pode = podeMover();
   document.querySelectorAll("[data-segurar], [data-toque]").forEach((b) => { b.disabled = !pode; });

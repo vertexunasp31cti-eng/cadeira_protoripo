@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <deque>
+#include <string>
+#include <utility>
+
 #define HIGH 1
 #define LOW 0
 #define INPUT 0
@@ -34,6 +38,11 @@ using std::abs;
 extern int pinos_simulados[70];
 extern unsigned long relogio_simulado;
 
+// Com true (o padrao), cada millis() avanca 1 ms: esperas com tempo limite,
+// como as do modulo de voz no setup(), sempre terminam. Os ensaios e o
+// simulador desligam e controlam o relogio eles mesmos.
+extern bool relogio_automatico;
+
 void pinMode(uint8_t pino, uint8_t modo);
 int digitalRead(uint8_t pino);
 void digitalWrite(uint8_t pino, uint8_t valor);
@@ -42,45 +51,109 @@ unsigned long millis();
 void delay(unsigned long ms);
 
 // --- Serial ----------------------------------------------------------------
+// Alem de compilar, a serial do stub serve aos ensaios do sketch inteiro
+// (testes/ensaio_firmware.cpp) e ao simulador (testes/simulador/):
+//   - injetar() poe bytes "no fio", com o instante em que chegam. Como na
+//     UART do Mega, so entram depois do begin() e o buffer de recepcao guarda
+//     63 bytes: o que chega com ele cheio se perde.
+//   - tudo que o sketch escreve fica em saida, alem de ir para a tela quando
+//     a serial nao esta silenciada.
+//   - livre_tx imita o espaco no buffer de transmissao (availableForWrite).
 class Stream {
  public:
   virtual ~Stream() {}
-  virtual int available() { return 0; }
-  virtual int read() { return -1; }
-  virtual size_t write(uint8_t) { return 1; }
+  virtual int available() {
+    receber();
+    return (int)rx.size();
+  }
+  virtual int read() {
+    receber();
+    if (rx.empty()) return -1;
+    int b = rx.front();
+    rx.pop_front();
+    ++lidos;
+    return b;
+  }
+  virtual size_t write(uint8_t c) {
+    saida += (char)c;
+    return 1;
+  }
   virtual void flush() {}
-  // Espaco livre no buffer de transmissao. No Mega sao no maximo 63 bytes; no
-  // PC nada fica preso, entao sempre ha esse espaco.
-  virtual int availableForWrite() { return 63; }
+  // Espaco livre no buffer de transmissao. No Mega sao no maximo 63 bytes.
+  virtual int availableForWrite() { return livre_tx; }
 
-  void print(const char* s) { if (registrar_) printf("%s", s); }
-  void print(char c) { if (registrar_) printf("%c", c); }
-  void print(int v) { if (registrar_) printf("%d", v); }
-  void print(unsigned int v) { if (registrar_) printf("%u", v); }
-  void print(long v) { if (registrar_) printf("%ld", v); }
-  void print(unsigned long v) { if (registrar_) printf("%lu", v); }
-  void println() { if (registrar_) printf("\n"); }
-  void println(const char* s) { if (registrar_) printf("%s\n", s); }
-  void println(char c) { if (registrar_) printf("%c\n", c); }
-  void println(int v) { if (registrar_) printf("%d\n", v); }
-  void println(unsigned long v) { if (registrar_) printf("%lu\n", v); }
+  void print(const char* s) { escrever(s); }
+  void print(char c) { char t[2] = {c, '\0'}; escrever(t); }
+  void print(int v) { formatar("%d", v); }
+  void print(unsigned int v) { formatar("%u", v); }
+  void print(long v) { formatar("%ld", v); }
+  void print(unsigned long v) { formatar("%lu", v); }
+  void println() { escrever("\n"); }
+  void println(const char* s) { print(s); println(); }
+  void println(char c) { print(c); println(); }
+  void println(int v) { print(v); println(); }
+  void println(unsigned long v) { print(v); println(); }
 
   // Versoes com base numerica, como Serial.print(valor, HEX).
-  void print(int v, int base) {
-    if (!registrar_) return;
-    if (base == HEX) printf("%X", v); else printf("%d", v);
-  }
+  void print(int v, int base) { formatar(base == HEX ? "%X" : "%d", v); }
   void println(int v, int base) { print(v, base); println(); }
 
   void silenciar(bool s) { registrar_ = !s; }
 
+  // --- Ajudantes de ensaio e simulacao --------------------------------------
+  // Bytes que chegam agora, ou no instante t (relogio_simulado).
+  void injetar(const std::string& s) { injetar(s, relogio_simulado); }
+  void injetar(const std::string& s, unsigned long t) {
+    for (size_t i = 0; i < s.size(); ++i) {
+      no_fio.push_back(std::make_pair(t, (uint8_t)s[i]));
+    }
+  }
+  // Esquece o que estava no fio, no buffer e na saida.
+  void zerar() {
+    no_fio.clear();
+    rx.clear();
+    saida.clear();
+    lidos = 0;
+    perdidos = 0;
+  }
+
+  std::deque<std::pair<unsigned long, uint8_t> > no_fio;
+  std::deque<uint8_t> rx;
+  std::string saida;
+  bool iniciada = false;
+  int livre_tx = 63;
+  unsigned long lidos = 0;
+  unsigned long perdidos = 0;
+
  protected:
   bool registrar_ = true;
+
+ private:
+  void receber() {
+    while (!no_fio.empty() && no_fio.front().first <= relogio_simulado) {
+      if (iniciada && rx.size() < 63) {
+        rx.push_back(no_fio.front().second);
+      } else {
+        ++perdidos;
+      }
+      no_fio.pop_front();
+    }
+  }
+  void escrever(const char* s) {
+    saida += s;
+    if (registrar_) printf("%s", s);
+  }
+  template <typename T>
+  void formatar(const char* formato, T v) {
+    char t[24];
+    snprintf(t, sizeof(t), formato, v);
+    escrever(t);
+  }
 };
 
 class HardwareSerial : public Stream {
  public:
-  void begin(long) {}
+  void begin(long) { iniciada = true; }
 };
 
 extern HardwareSerial Serial;
