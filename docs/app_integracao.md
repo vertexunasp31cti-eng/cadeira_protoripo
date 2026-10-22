@@ -153,9 +153,10 @@ app. A senha precisa ter pelo menos 8 caracteres.
 
 ### 3.7 Equipe na aba Sobre
 
-No começo do script de `app/index.html` há um objeto `EQUIPE`. Preencha
-integrantes, orientador, instituição e ano, e gere o `pagina.h` de novo. A
-seção "Equipe" só aparece quando há integrantes preenchidos.
+Os nomes dos integrantes e do orientador, a instituição e o ano ficam no
+objeto `EQUIPE`, no começo do script de `app/index.html`. Para corrigir
+algum, edite ali e gere o `pagina.h` de novo. A seção "Equipe" só aparece
+quando há integrantes preenchidos.
 
 ## 4. Como funciona
 
