@@ -91,6 +91,13 @@ class ControleCadeira {
   // (por exemplo, seguir em frente com obstaculo detectado).
   bool aplicarComando(Comando c, unsigned long agora_ms);
 
+  // "Segure para andar" do app: so renova o tempo do homem-morto se a cadeira
+  // ja estiver exatamente nesse movimento (FRENTE para CMD_FRENTE, RE para
+  // CMD_RE). Nunca inicia movimento: depois de qualquer parada, voltar a andar
+  // exige um comando novo. Giro nao e renovavel de proposito, porque e um
+  // pulso curto. Retorna true se renovou; nao mexe em mais nada.
+  bool renovarComando(Comando c, unsigned long agora_ms);
+
   // Deve ser chamada continuamente no loop principal.
   // obstaculo = true quando o sensor infravermelho ve algo a frente.
   void atualizar(unsigned long agora_ms, bool obstaculo);
@@ -138,5 +145,9 @@ class ControleCadeira {
 const char* nomeComando(Comando c);
 const char* nomeEstado(Estado e);
 const char* nomeMotivo(MotivoParada m);
+
+// Codigo fixo do motivo (NENHUMA, COMANDO, OBSTACULO, ...), para o protocolo
+// do app. Nao use nomeMotivo() la: aquele e texto de depuracao e pode mudar.
+const char* codigoMotivo(MotivoParada m);
 
 #endif  // CONTROLE_H
