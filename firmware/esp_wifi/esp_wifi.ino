@@ -70,8 +70,8 @@ static const char MANIFESTO[] PROGMEM =
     "{\"name\":\"Cadeira por Voz\",\"short_name\":\"Cadeira\","
     "\"description\":\"Acompanhe e comande a cadeira de rodas por voz.\","
     "\"lang\":\"pt-BR\",\"start_url\":\"/\",\"scope\":\"/\","
-    "\"display\":\"standalone\",\"background_color\":\"#ffffff\","
-    "\"theme_color\":\"#1d4ed8\",\"icons\":[{\"src\":\"/icone.svg\","
+    "\"display\":\"standalone\",\"background_color\":\"#edf0f4\","
+    "\"theme_color\":\"#ffffff\",\"icons\":[{\"src\":\"/icone.svg\","
     "\"sizes\":\"any\",\"type\":\"image/svg+xml\",\"purpose\":\"any\"}]}";
 
 static const char ICONE_SVG[] PROGMEM =
@@ -113,7 +113,10 @@ void rotaPagina() {
   // no-cache: depois de gravar um app novo no ESP, o celular confere antes de
   // reaproveitar a pagina guardada.
   servidor.sendHeader("Cache-Control", "no-cache");
-  servidor.send_P(200, "text/html; charset=utf-8", PAGINA_HTML);
+  // A pagina esta compactada com gzip (pagina.h): o navegador descompacta.
+  servidor.sendHeader("Content-Encoding", "gzip");
+  servidor.send_P(200, "text/html; charset=utf-8", (PGM_P)PAGINA_HTML_GZ,
+                  PAGINA_HTML_GZ_TAM);
 }
 
 void rotaEstado() {

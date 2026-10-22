@@ -14,6 +14,7 @@
 
 #include "../firmware/esp_wifi/esp_wifi.ino"
 
+#include <cstring>
 #include <string>
 
 typedef ESP8266WebServer::Resposta Resposta;
@@ -120,9 +121,15 @@ int main(int argc, char** argv) {
 
   // --- Pagina, manifesto e icone --------------------------------------------
   Resposta r = pedir(HTTP_GET, "/");
+  // O conteudo descompactado e conferido pelo gerar_pagina.py --verificar.
   verificar(r.status == 200 && r.tipo == "text/html; charset=utf-8" &&
-                r.corpo == PAGINA_HTML && !r.corpo.empty(),
-            "GET / devolve o app inteiro (pagina.h) como text/html utf-8");
+                r.cabecalho("Content-Encoding") == "gzip" &&
+                r.corpo.size() == PAGINA_HTML_GZ_TAM &&
+                std::memcmp(r.corpo.data(), PAGINA_HTML_GZ,
+                            PAGINA_HTML_GZ_TAM) == 0 &&
+                (unsigned char)r.corpo[0] == 0x1f &&
+                (unsigned char)r.corpo[1] == 0x8b,
+            "GET / devolve o app inteiro (pagina.h), compactado com gzip");
   r = pedir(HTTP_HEAD, "/");
   verificar(r.status == 200, "HEAD / nao cai no redirecionamento para si mesmo");
 
