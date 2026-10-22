@@ -13,11 +13,13 @@
 
 const { chromium } = require("playwright");
 const { spawn } = require("child_process");
+const fs = require("fs");
 const http = require("http");
 const net = require("net");
 const path = require("path");
 
 const SERVIDOR = path.join(__dirname, "servidor.py");
+const APP = path.join(__dirname, "..", "..", "app", "index.html");
 const BUILD = path.join(__dirname, "..", "build");
 
 let total = 0;
@@ -297,12 +299,51 @@ async function soAcompanha(navegador) {
   }
 }
 
+// Publicado num endereco https (Vercel, previa), o app nao alcanca a cadeira:
+// precisa abrir direto na demonstracao, sem tentar a API.
+async function versaoOnline(navegador) {
+  titulo("11. Versao online (https), fora da rede da cadeira");
+  const contexto = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const pagina = await contexto.newPage();
+  const html = fs.readFileSync(APP, "utf8");
+  const pedidosApi = [];
+  const erros = [];
+  pagina.on("pageerror", (e) => erros.push(String(e)));
+  await pagina.route("https://cadeira.exemplo/**", (r) => {
+    const url = r.request().url();
+    if (url.includes("/api/")) {
+      pedidosApi.push(url);
+      return r.fulfill({ status: 404, body: "" });
+    }
+    return r.fulfill({ body: html, contentType: "text/html; charset=utf-8" });
+  });
+  try {
+    await pagina.goto("https://cadeira.exemplo/");
+    await pagina.waitForSelector("#faixa-demo", { state: "visible", timeout: 3000 });
+    const faixa = await texto(pagina, "#faixa-demo-texto");
+    verificar(faixa.includes("Demonstração online") && faixa.includes("192.168.4.1"),
+      "abre direto na demonstracao, com o aviso de como comandar a cadeira");
+    verificar(!(await visivel(pagina, "#btn-sair-demo")), "sem o botao de sair da demonstracao");
+    await pagina.click("#trava");
+    const soltar = await segurar(pagina, "#btn-frente");
+    await pagina.waitForFunction(() => document.getElementById("estado-nome").textContent.includes("Andando para frente"), null, { timeout: 3000 }).catch(() => {});
+    verificar((await texto(pagina, "#estado-nome")).includes("Andando para frente"), "a cadeira simulada anda segurando Frente");
+    await soltar();
+    await esperar(800);
+    verificar(pedidosApi.length === 0, "nenhum pedido para a API: nada sai pela rede");
+    verificar(erros.length === 0, erros.length ? "erros: " + erros.join(" | ") : "nenhum erro de JavaScript");
+  } finally {
+    await contexto.close();
+  }
+}
+
 (async () => {
   console.log("Teste de ponta a ponta: app + firmwares reais no simulador");
   const navegador = await chromium.launch();
   try {
     await principal(navegador);
     await soAcompanha(navegador);
+    await versaoOnline(navegador);
   } catch (e) {
     falhas++;
     console.log("  [FALHA] " + (e && e.stack ? e.stack : e));

@@ -55,6 +55,10 @@ homem-morto e obstáculo, e dois botões extras para simular obstáculo e botão
 de emergência. Uma faixa fixa avisa que os dados são simulados. Serve de
 plano B na apresentação e para mostrar o app sem a placa.
 
+Aberto por um endereço `https`, como a vitrine publicada na internet (seção
+3.8), o app vai direto para a demonstração: dali ele não tem como alcançar a
+cadeira, e nada sai pela rede.
+
 ## 2. Usar no dia a dia
 
 1. Ligue a cadeira. As chaves DIP precisam estar na posição de uso (seção
@@ -157,6 +161,19 @@ Os nomes dos integrantes e do orientador, a instituição e o ano ficam no
 objeto `EQUIPE`, no começo do script de `app/index.html`. Para corrigir
 algum, edite ali e gere o `pagina.h` de novo. A seção "Equipe" só aparece
 quando há integrantes preenchidos.
+
+### 3.8 Vitrine online (Vercel)
+
+O app pode ser publicado na internet como vitrine, para a banca ou qualquer
+pessoa ver o app e a aba "Sobre o TCC" num link ou QR code. Online ele abre
+direto na demonstração, com o aviso de como comandar a cadeira de verdade:
+uma página `https` na internet não consegue falar com a cadeira em
+`http://192.168.4.1`, e o celular na rede da cadeira não tem internet.
+
+Na Vercel: Add New > Project, importe o repositório, em **Root Directory**
+escolha `app`, em **Framework Preset** deixe **Other**, sem comando de build,
+e clique em Deploy. Cada mudança no `app/index.html` que chegar à branch
+principal do repositório é publicada de novo sozinha.
 
 ## 4. Como funciona
 

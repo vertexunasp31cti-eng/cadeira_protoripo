@@ -888,6 +888,10 @@ const EQUIPE = {
 // Servido pelo ESP o caminho e relativo. Aberto como arquivo no celular,
 // vai direto ao IP fixo do ponto de acesso da cadeira.
 const API = location.protocol === "file:" ? "http://192.168.4.1" : "";
+// A cadeira serve o app por http. Numa pagina https, como a versao publicada
+// na internet, o navegador nao deixa falar com ela (e o celular na rede da
+// cadeira nem tem internet): ali o app abre direto na demonstracao.
+const SO_DEMO = location.protocol === "https:";
 const INTERVALO_ESTADO_MS = 300;
 const LIMITE_ESTADO_MS = 1500;
 const FALHAS_SEM_CONEXAO = 3;
@@ -1584,7 +1588,7 @@ function entrarDemo() {
 }
 
 function sairDemo() {
-  if (!E.demo) return;
+  if (!E.demo || SO_DEMO) return;
   encerrarSegurar(false);
   clearInterval(timerDemo);
   E.demo.parar();
@@ -1756,9 +1760,14 @@ medirCabecalho();
 let abaInicial = "painel";
 try { const h = location.hash.slice(1); if (ABAS.indexOf(h) >= 0) abaInicial = h; } catch (e) { /* sem hash */ }
 renderEquipe();
+if (SO_DEMO) {
+  $("faixa-demo-texto").innerHTML = "<strong>Demonstração online</strong> — dados simulados. Para comandar a cadeira, entre na rede Wi-Fi <b>Cadeira-TCC</b> e abra <b>http://192.168.4.1</b>";
+  $("btn-sair-demo").hidden = true;
+  entrarDemo();
+}
 mostrarAba(abaInicial);
 renderizar();
-consultarEstado();
+if (!SO_DEMO) consultarEstado();
 })();
 </script>
 </body>
