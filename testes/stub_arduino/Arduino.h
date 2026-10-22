@@ -49,6 +49,9 @@ class Stream {
   virtual int read() { return -1; }
   virtual size_t write(uint8_t) { return 1; }
   virtual void flush() {}
+  // Espaco livre no buffer de transmissao. No Mega sao no maximo 63 bytes; no
+  // PC nada fica preso, entao sempre ha esse espaco.
+  virtual int availableForWrite() { return 63; }
 
   void print(const char* s) { if (registrar_) printf("%s", s); }
   void print(char c) { if (registrar_) printf("%c", c); }

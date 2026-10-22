@@ -161,6 +161,24 @@ bool ControleCadeira::aplicarComando(Comando c, unsigned long agora_ms) {
   }
 }
 
+bool ControleCadeira::renovarComando(Comando c, unsigned long agora_ms) {
+  // Se o homem-morto ja venceu e o atualizar() ainda nao rodou, a cadeira ja
+  // deveria estar parando: renovar agora daria mais 3 s a um movimento vencido.
+  if ((agora_ms - t_ultimo_comando_) >= cfg::TEMPO_LIMITE_COMANDO_MS) {
+    return false;
+  }
+
+  // Re renova mesmo com obstaculo, pelo mesmo motivo de ser liberada: o
+  // sensor so olha para a frente.
+  bool mesmoMovimento =
+      (c == CMD_FRENTE && estado_ == EST_FRENTE && !obstaculo_) ||
+      (c == CMD_RE && estado_ == EST_RE);
+  if (!mesmoMovimento) return false;
+
+  t_ultimo_comando_ = agora_ms;
+  return true;
+}
+
 void ControleCadeira::atualizar(unsigned long agora_ms, bool obstaculo) {
   obstaculo_ = obstaculo;
 
@@ -223,5 +241,16 @@ const char* nomeMotivo(MotivoParada m) {
     case PARADA_FIM_DO_GIRO: return "fim do giro";
     case PARADA_EMERGENCIA: return "parada de emergencia";
     default: return "-";
+  }
+}
+
+const char* codigoMotivo(MotivoParada m) {
+  switch (m) {
+    case PARADA_COMANDO: return "COMANDO";
+    case PARADA_OBSTACULO: return "OBSTACULO";
+    case PARADA_TEMPO_LIMITE: return "TEMPO_LIMITE";
+    case PARADA_FIM_DO_GIRO: return "FIM_DO_GIRO";
+    case PARADA_EMERGENCIA: return "EMERGENCIA";
+    default: return "NENHUMA";
   }
 }

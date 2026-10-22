@@ -71,18 +71,35 @@ const long BAUD_DEBUG = 115200;
 // Com 1, os comandos tambem podem ser digitados no Monitor Serial
 // (f=frente, t=tras, e=esquerda, d=direita, p=parar, +=rapido, -=devagar).
 // Permite testar o carrinho sem o modulo de voz e demonstrar a banca.
+// As opcoes com #ifndef tambem podem ser trocadas na compilacao, com -D.
+#ifndef MODO_SIMULACAO
 #define MODO_SIMULACAO 1
+#endif
 
 // Intervalo de envio da telemetria pela serial.
 const unsigned long TELEMETRIA_MS = 500;
 
 // ---------------------------------------------------------------------------
-// ESP8266 embarcado (opcional)
+// ESP8266 embarcado: app do celular por Wi-Fi
 // ---------------------------------------------------------------------------
-// Na placa Mega+ESP8266 o modulo ESP fica na Serial3, habilitado pelas chaves
-// DIP. Mantenha 0 enquanto nao usar o Wi-Fi.
-#define USAR_ESP8266 0
+// Na placa Mega+ESP8266 o modulo ESP fica na Serial3, ligado pelas chaves DIP
+// 1 e 2. O ESP tem firmware proprio (firmware/esp_wifi/): cria a rede Wi-Fi,
+// serve o app e repassa as linhas. Toda decisao de movimento continua aqui.
+// Sem o ESP ligado nada muda: ruido na Serial3 nunca vira comando.
+#ifndef USAR_ESP8266
+#define USAR_ESP8266 1
+#endif
 #define SERIAL_ESP Serial3
 const long BAUD_ESP = 115200;
+
+// 1 = o app pode comandar o movimento, passando pelas mesmas travas da voz.
+// 0 = o app so acompanha (monitoramento): todo comando dele e recusado, menos
+//     "parar", que e sempre aceito porque parar e sempre seguro.
+#ifndef PERMITIR_COMANDO_APP
+#define PERMITIR_COMANDO_APP 1
+#endif
+
+// Intervalo de envio da telemetria para o app.
+const unsigned long TELEMETRIA_APP_MS = 250;
 
 #endif  // CONFIG_H
