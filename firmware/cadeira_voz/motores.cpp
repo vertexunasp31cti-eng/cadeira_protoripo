@@ -27,11 +27,26 @@ void Motores::acionar(uint8_t pino_en, uint8_t pino_a, uint8_t pino_b,
   valor = constrain(valor, -255, 255);
 
   if (valor == 0) {
-    // IN1 = IN2 = LOW deixa o motor em roda livre. Nao usamos frenagem
-    // eletrica para nao derrapar nem sobrecarregar a ponte.
+    // IN1 = IN2 = LOW. Com o ENA/ENB vindo do Arduino (EN em LOW) o motor fica
+    // em roda livre; com o EN preso no 5V o L298 freia o motor.
     digitalWrite(pino_a, LOW);
     digitalWrite(pino_b, LOW);
     analogWrite(pino_en, 0);
+    return;
+  }
+
+  if (ENA_ENB_NO_5V) {
+    // O EN esta sempre ligado, entao a velocidade vai no pino IN do sentido
+    // escolhido, e o outro IN fica em LOW. Na parte baixa do PWM os dois IN
+    // ficam em LOW e o L298 freia; na media, a velocidade fica proporcional.
+    // O outro IN vai para LOW antes, para os dois nunca ficarem em HIGH.
+    if (valor > 0) {
+      digitalWrite(pino_b, LOW);
+      analogWrite(pino_a, abs(valor));
+    } else {
+      digitalWrite(pino_a, LOW);
+      analogWrite(pino_b, abs(valor));
+    }
     return;
   }
 

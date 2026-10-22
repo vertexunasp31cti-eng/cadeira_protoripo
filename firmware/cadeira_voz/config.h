@@ -29,6 +29,15 @@ const uint8_t PINO_IN4 = 10;
 // O digitalWrite nos pinos 7 e 8 desliga apenas o canal PWM deles no Timer4,
 // sem afetar o PWM do pino 6 (ENB), que usa outro canal do mesmo timer.
 
+// Como o ENA e o ENB estao ligados na ponte H:
+//   true  = ENA e ENB presos no 5V (jumper ou fio femea-femea) e os pinos 5 e 6
+//           vazios. Assim o L298N ignora o PWM do ENA/ENB, entao a velocidade
+//           e feita com PWM no proprio pino IN do sentido escolhido. Os pinos
+//           7 a 10 aceitam PWM no Mega (Timer4 e Timer2).
+//   false = sem jumper, fio do pino 5 no ENA e do pino 6 no ENB. A velocidade
+//           vai pelo ENA/ENB e os IN so escolhem o sentido.
+const bool ENA_ENB_NO_5V = true;
+
 // Se uma roda girar ao contrario do esperado, troque para true OU inverta os
 // dois fios do motor no L298N. Nunca as duas coisas: elas se anulam.
 const bool INVERTER_MOTOR_ESQ = false;

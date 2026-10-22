@@ -20,11 +20,16 @@ Se você mudar a montagem, mude lá e não espalhe números pelo código.
 Os pinos ENA e ENB controlam a velocidade, e há duas montagens possíveis.
 Use uma ou a outra, nunca as duas juntas:
 
-- **Jumpers colocados, nada nos pinos 5 e 6.** Os motores andam sempre na
-  velocidade máxima, mas frente, ré, giro e parada funcionam. É a montagem
-  mais simples para o primeiro teste.
-- **Jumpers retirados, fio 5→ENA e 6→ENB.** Com isso funcionam o controle de
-  velocidade (`rápido` e `devagar`) e a rampa de partida.
+- **Jumpers colocados, nada nos pinos 5 e 6.** O ENA e o ENB ficam presos no
+  5 V. É a montagem mais simples, e também serve com um fio fêmea-fêmea no
+  lugar de cada jumper.
+- **Jumpers retirados, fio 5→ENA e 6→ENB.** A velocidade vai pelo ENA/ENB.
+
+Nas duas montagens o controle de velocidade (`rápido` e `devagar`) e a rampa
+de partida funcionam. Com o ENA/ENB preso no 5V, o firmware manda o PWM pelo
+próprio pino IN do sentido escolhido (os pinos 7 a 10 aceitam PWM). Diga ao
+firmware qual montagem você usou em `ENA_ENB_NO_5V`, no `config.h`: `true`
+para jumper ou fio fêmea-fêmea, `false` para fio nos pinos 5 e 6.
 
 Cada jumper fica sobre **dois** pinos. Um deles é o ENA (ou ENB) de
 verdade, que vai para o chip. O outro é uma saída de +5 V do próprio L298N.

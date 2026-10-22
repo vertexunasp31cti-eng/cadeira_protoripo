@@ -23,7 +23,9 @@ const int PWM_MINIMO = 90;
 // Tres niveis de velocidade selecionaveis por voz ("devagar" / "rapido").
 const int NIVEIS_PWM[3] = {130, 175, 220};
 const int TOTAL_NIVEIS = 3;
-const int NIVEL_INICIAL = 0;
+// Comeca no nivel do meio: mais devagar que o maximo e com folga para a roda
+// sair do lugar. "devagar" desce para o primeiro nivel, "rapido" sobe.
+const int NIVEL_INICIAL = 1;
 
 // Giro no proprio eixo usa velocidade reduzida (percentual do nivel atual).
 const int FATOR_GIRO_PCT = 70;
