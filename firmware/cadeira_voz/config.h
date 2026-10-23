@@ -16,21 +16,20 @@
 // ENA e ENB precisam ser pinos PWM. No Mega evite os pinos 4 e 13: eles usam
 // o Timer0, o mesmo do millis(). Os pinos 5 e 6 estao em timers livres.
 const uint8_t PINO_ENA = 5;   // PWM - velocidade do motor esquerdo
-const uint8_t PINO_IN1 = 35;  // sentido do motor esquerdo
-const uint8_t PINO_IN2 = 33;
+const uint8_t PINO_IN1 = 7;   // sentido do motor esquerdo
+const uint8_t PINO_IN2 = 8;
 const uint8_t PINO_ENB = 6;   // PWM - velocidade do motor direito
-const uint8_t PINO_IN3 = 34;  // sentido do motor direito
-const uint8_t PINO_IN4 = 32;
+const uint8_t PINO_IN3 = 9;   // sentido do motor direito
+const uint8_t PINO_IN4 = 10;
 
-// Os pinos 32 a 35 nao tem PWM no Mega, e nem precisam: eles so definem o
-// sentido de giro. Quem controla a velocidade e ENA/ENB, que precisam
-// obrigatoriamente de pinos PWM.
+// IN1 a IN4 so definem o sentido de giro, com nivel alto ou baixo. Quem
+// controla a velocidade e ENA/ENB. Com os jumpers de ENA/ENB colocados na
+// placa, nada vai nos pinos 5 e 6 e os motores andam sempre na velocidade
+// maxima.
 
 // Se uma roda girar ao contrario do esperado, troque para true em vez de
 // inverter os fios no L298N.
-// Na montagem atual, o motor esquerdo (OUT1/OUT2) esta com os fios trocados:
-// sem a inversao ele girava para tras no comando de frente.
-const bool INVERTER_MOTOR_ESQ = true;
+const bool INVERTER_MOTOR_ESQ = false;
 const bool INVERTER_MOTOR_DIR = false;
 
 // ---------------------------------------------------------------------------
@@ -48,7 +47,7 @@ const unsigned long DEBOUNCE_IR_MS = 30;
 // ---------------------------------------------------------------------------
 // Sinalizacao e emergencia
 // ---------------------------------------------------------------------------
-const uint8_t PINO_BUZZER = 8;
+const uint8_t PINO_BUZZER = 12;  // o 8 e o IN2 da ponte H
 const uint8_t PINO_LED = 13;          // LED da propria placa
 const uint8_t PINO_BOTAO_EMERG = 3;   // botao NA para GND (opcional)
 
@@ -106,5 +105,17 @@ const unsigned long TELEMETRIA_APP_MS = 250;
 
 // Intervalo de envio das estatisticas de uso (contadores desde que ligou).
 const unsigned long ESTATISTICAS_APP_MS = 1000;
+
+// Dois usos no mesmo pino fazem um ligar o outro: com o buzzer no pino do
+// IN2, cada bip girava uma roda. A compilacao para se isso voltar a acontecer.
+static_assert(PINO_BUZZER != PINO_IN1 && PINO_BUZZER != PINO_IN2 &&
+                  PINO_BUZZER != PINO_IN3 && PINO_BUZZER != PINO_IN4 &&
+                  PINO_BUZZER != PINO_ENA && PINO_BUZZER != PINO_ENB,
+              "buzzer no mesmo pino da ponte H");
+static_assert(PINO_SENSOR_IR != PINO_IN1 && PINO_SENSOR_IR != PINO_IN2 &&
+                  PINO_SENSOR_IR != PINO_IN3 && PINO_SENSOR_IR != PINO_IN4 &&
+                  PINO_BOTAO_EMERG != PINO_IN1 && PINO_BOTAO_EMERG != PINO_IN2 &&
+                  PINO_BOTAO_EMERG != PINO_IN3 && PINO_BOTAO_EMERG != PINO_IN4,
+              "sensor ou botao no mesmo pino da ponte H");
 
 #endif  // CONFIG_H
