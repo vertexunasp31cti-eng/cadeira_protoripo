@@ -28,7 +28,9 @@ const uint8_t PINO_IN4 = 32;
 
 // Se uma roda girar ao contrario do esperado, troque para true em vez de
 // inverter os fios no L298N.
-const bool INVERTER_MOTOR_ESQ = false;
+// Na montagem atual, o motor esquerdo (OUT1/OUT2) esta com os fios trocados:
+// sem a inversao ele girava para tras no comando de frente.
+const bool INVERTER_MOTOR_ESQ = true;
 const bool INVERTER_MOTOR_DIR = false;
 
 // ---------------------------------------------------------------------------

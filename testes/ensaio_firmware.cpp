@@ -596,8 +596,12 @@ int main() {
     rodar(3000);  // parada e rampa ate zero
     // Esquerdo: ENA/IN1/IN2. Direito: ENB/IN3/IN4. Frente = IN1 (ou IN3) HIGH.
     struct Esperado { int ena, in1, in2, enb, in3, in4; };
-    const Esperado passos[4] = {{180, 1, 0, 0, 0, 0}, {180, 0, 1, 0, 0, 0},
-                                {0, 0, 0, 180, 1, 0}, {0, 0, 0, 180, 0, 1}};
+    // Com INVERTER_MOTOR_*, "frente" daquele lado liga o outro pino de sentido.
+    const int fe = INVERTER_MOTOR_ESQ ? 0 : 1, fd = INVERTER_MOTOR_DIR ? 0 : 1;
+    const Esperado passos[4] = {{180, fe, 1 - fe, 0, 0, 0},
+                                {180, 1 - fe, fe, 0, 0, 0},
+                                {0, 0, 0, 180, fd, 1 - fd},
+                                {0, 0, 0, 180, 1 - fd, fd}};
     Serial.injetar("m");
     bool ordem = true;
     for (int i = 0; i < 4; ++i) {
