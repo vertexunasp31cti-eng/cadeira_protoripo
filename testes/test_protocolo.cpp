@@ -125,7 +125,8 @@ static bool linhaDeSaidaValida(const char* s, unsigned int n) {
     if (b < 0x20 || b > 0x7E) return false;
   }
   if (strncmp(s, "{\"t\":\"tel\",", 11) != 0 &&
-      strncmp(s, "{\"t\":\"evt\",", 11) != 0) {
+      strncmp(s, "{\"t\":\"evt\",", 11) != 0 &&
+      strncmp(s, "{\"t\":\"est\",", 11) != 0) {
     return false;
   }
   if (s[conteudo - 1] != '}') return false;
@@ -1151,6 +1152,65 @@ int main() {
     verificar(soAcompanha,
               "com PERMITIR_COMANDO_APP 0, todo CMD que nao e parar e "
               "recusado e todo MNT e ignorado");
+  }
+
+  // ------------------------------------------------------------------
+  titulo("10. Estatisticas de uso");
+  {
+    Estatisticas e;
+    zerarEstatisticas(e);
+    char buf[TAM_LINHA_APP];
+    unsigned int n = formatarEstatisticas(buf, sizeof(buf), 0, e);
+    verificar(n > 0 && strcmp(buf,
+                              "{\"t\":\"est\",\"lig\":0,\"mov\":0,\"voz\":0,"
+                              "\"app\":0,\"tec\":0,\"rec\":0,\"obst\":0,"
+                              "\"emerg\":0,\"pcmd\":0,\"pobst\":0,\"ptlim\":0,"
+                              "\"pgiro\":0,\"pemerg\":0}*0B\n") == 0,
+              "zerada: texto exato, com todos os contadores em 0");
+
+    contarComando(e, "voz", true);
+    contarComando(e, "voz", true);
+    contarComando(e, "app", false);
+    contarComando(e, "teclado", true);
+    contarComando(e, "outra", true);  // origem desconhecida nao conta
+    contarParada(e, PARADA_OBSTACULO);
+    contarParada(e, PARADA_NENHUMA);  // nao e parada
+    contarObstaculo(e);
+    e.ms_movimento = 95999;  // 95,999 s: segundos inteiros, sem arredondar
+    n = formatarEstatisticas(buf, sizeof(buf), 3725000UL, e);
+    verificar(n > 0 && strcmp(buf,
+                              "{\"t\":\"est\",\"lig\":3725,\"mov\":95,"
+                              "\"voz\":2,\"app\":1,\"tec\":1,\"rec\":1,"
+                              "\"obst\":1,\"emerg\":0,\"pcmd\":0,\"pobst\":1,"
+                              "\"ptlim\":0,\"pgiro\":0,\"pemerg\":0}*07\n") == 0,
+              "conta por origem, recusa, obstaculo e parada; tempo em segundos");
+    verificar(linhaDeSaidaValida(buf, n),
+              "a linha passa pela mesma validacao que a ponte do ESP faz");
+
+    zerarEstatisticas(e);
+    for (long i = 0; i < 70000; ++i) {
+      contarComando(e, "app", false);
+      contarObstaculo(e);
+      contarEmergencia(e);
+      contarParada(e, PARADA_TEMPO_LIMITE);
+    }
+    verificar(e.cmd_app == 65535 && e.recusados == 65535 &&
+                  e.obstaculos == 65535 && e.emergencias == 65535 &&
+                  e.p_tempo_limite == 65535,
+              "contador para em 65535 em vez de voltar a zero (int de 16 bits)");
+
+    // Pior caso: todo contador no maximo e o maior millis().
+    e.cmd_voz = e.cmd_teclado = e.p_comando = e.p_obstaculo = 65535;
+    e.p_fim_giro = e.p_emergencia = 65535;
+    e.ms_movimento = 4294967295UL;
+    n = formatarEstatisticas(buf, sizeof(buf), 4294967295UL, e);
+    verificar(n == 188 && linhaDeSaidaValida(buf, n),
+              "pior caso: 188 bytes, cabe na linha de 200 do Mega");
+    char pequeno[100];
+    memset(pequeno, '#', sizeof(pequeno));
+    n = formatarEstatisticas(pequeno, sizeof(pequeno), 4294967295UL, e);
+    verificar(n == 0 && pequeno[0] == '\0',
+              "linha que nao cabe nao sai pela metade");
   }
 
   // ------------------------------------------------------------------

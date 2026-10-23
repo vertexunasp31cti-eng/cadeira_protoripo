@@ -102,4 +102,7 @@ const long BAUD_ESP = 115200;
 // Intervalo de envio da telemetria para o app.
 const unsigned long TELEMETRIA_APP_MS = 250;
 
+// Intervalo de envio das estatisticas de uso (contadores desde que ligou).
+const unsigned long ESTATISTICAS_APP_MS = 1000;
+
 #endif  // CONFIG_H

@@ -20,9 +20,18 @@ Faixas de alerta aparecem para emergência, obstáculo à frente e módulo de
 voz indisponível. O botão **PARAR** fica sempre visível e sempre ativo, no
 estilo de um botão de emergência de máquina.
 
-**Histórico.** Lista o que aconteceu, com horário: cadeira ligada, cada
-comando com a origem (voz, teclado ou app) e se foi aceito, cada parada com
-o motivo, obstáculo detectado e liberado, emergência acionada e liberada.
+**Histórico.** No topo, um resumo do que a cadeira contou desde que foi
+ligada: obstáculos detectados, acionamentos do botão de emergência, tempo
+andando, comandos recusados, comandos por origem (voz, app e teclado) e
+paradas por motivo. Quem conta é o Mega, então os números valem mesmo que o
+celular tenha conectado depois; eles zeram quando a cadeira é desligada.
+Abaixo vem a lista do que aconteceu, com horário: cadeira ligada, cada
+comando com a origem e se foi aceito, cada parada com o motivo, obstáculo
+detectado e liberado, emergência acionada e liberada.
+
+Os números do resumo servem para a seção de resultados do TCC: depois de um
+ensaio, por exemplo, quantas vezes o sensor parou a cadeira e quantas paradas
+foram pelo homem-morto.
 
 **Sobre o TCC.** Apresenta o projeto: objetivo, justificativa, como
 funciona, os sete comandos de voz, as oito travas de segurança, componentes,
@@ -279,6 +288,25 @@ ou grande demais é descartada inteira.
 O evento `comando` sai para todo comando tratado, de voz, teclado ou app. A
 `parada` sai quando a cadeira passa de um movimento para parada.
 
+**Mega para ESP: estatísticas**, uma vez por segundo, com os contadores
+desde que a cadeira ligou:
+
+```
+{"t":"est","lig":3725,"mov":95,"voz":12,"app":30,"tec":2,"rec":3,"obst":5,"emerg":1,"pcmd":10,"pobst":4,"ptlim":6,"pgiro":8,"pemerg":1}*3B
+```
+
+| Campo | Significado |
+|-------|-------------|
+| `lig`, `mov` | segundos ligada e segundos com alguma roda girando |
+| `voz`, `app`, `tec` | comandos tratados, por origem (renovação não conta) |
+| `rec` | comandos recusados, de qualquer origem |
+| `obst`, `emerg` | vezes que o sensor passou a ver obstáculo e que o botão de emergência foi apertado |
+| `pcmd`, `pobst`, `ptlim`, `pgiro`, `pemerg` | paradas por comando, obstáculo, tempo limite (homem-morto), fim do giro e emergência |
+
+Os contadores param em 65535 em vez de voltar a zero. Uma parada só conta
+quando a cadeira estava andando: Frente recusada com a cadeira já parada
+conta em `rec`, não em `pobst`.
+
 **ESP para Mega: comandos.**
 
 ```
@@ -302,13 +330,15 @@ número de sequência maior que `N`:
 ```json
 {"conectado":true,"idade_ms":120,
  "tel":{"t":"tel","ms":15230,"estado":"FRENTE","pwmEsq":130,"pwmDir":130,"nivel":1,"obstaculo":0,"emergencia":0,"motivo":"NENHUMA","voz":1,"app":1},
+ "est":{"t":"est","lig":3725,"mov":95,"voz":12,"app":30,"tec":2,"rec":3,"obst":5,"emerg":1,"pcmd":10,"pobst":4,"ptlim":6,"pgiro":8,"pemerg":1},
  "seq":42,
  "eventos":[{"seq":42,"idade_ms":3000,"dados":{"t":"evt","ms":15100,"tipo":"comando","cmd":"FRENTE","origem":"voz","aceito":1}}],
  "esp":{"uptime_ms":123456,"clientes":1,"linhas_ok":1234,"linhas_erro":2}}
 ```
 
 - `conectado` fica falso quando o Mega passa 1,5 s sem mandar nada.
-- `tel` e `idade_ms` são `null` antes da primeira telemetria.
+- `tel` e `idade_ms` são `null` antes da primeira telemetria, e `est` antes
+  da primeira linha de estatísticas.
 - `idade_ms` de cada evento é há quanto tempo o ESP o recebeu.
 - Sem `desde`, vêm todos os eventos guardados (no máximo 20).
 

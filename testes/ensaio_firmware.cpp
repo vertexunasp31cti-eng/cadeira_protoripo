@@ -93,7 +93,8 @@ static bool linhaValida(const std::string& l) {
   snprintf(hh, sizeof(hh), "%02X", x);
   return l.compare(l.size() - 2, 2, hh) == 0 &&
          (l.compare(0, 11, "{\"t\":\"tel\",") == 0 ||
-          l.compare(0, 11, "{\"t\":\"evt\",") == 0);
+          l.compare(0, 11, "{\"t\":\"evt\",") == 0 ||
+          l.compare(0, 11, "{\"t\":\"est\",") == 0);
 }
 
 static bool todasValidas(const std::vector<std::string>& v) {
@@ -120,6 +121,16 @@ static int indice(const std::vector<std::string>& v, const char* trecho) {
   }
   return -1;
 }
+
+#if USAR_ESP8266 && PERMITIR_COMANDO_APP
+// Valor numerico de um campo ("obst", "app"...) numa linha do Mega.
+static unsigned long campo(const std::string& linha, const char* nome) {
+  std::string chave = std::string("\"") + nome + "\":";
+  size_t i = linha.find(chave);
+  if (i == std::string::npos) return 999999;
+  return strtoul(linha.c_str() + i + chave.size(), NULL, 10);
+}
+#endif
 
 static bool motoresParados() {
   return pinos_simulados[PINO_ENA] == 0 && pinos_simulados[PINO_ENB] == 0;
@@ -406,6 +417,37 @@ int main() {
                   controle.motivoUltimaParada() == PARADA_COMANDO,
               "lixo sem '\\n' e, depois de um silencio, CMD:parar: para");
     novas();
+  }
+
+  // ------------------------------------------------------------------
+  titulo("6b. Estatisticas de uso, somando os ensaios 1 a 6");
+  {
+    rodar(ESTATISTICAS_APP_MS + 100);
+    std::vector<std::string> v = novas();
+    std::string est;
+    for (size_t i = 0; i < v.size(); ++i) {
+      if (v[i].compare(0, 11, "{\"t\":\"est\",") == 0) est = v[i];
+    }
+    verificar(!est.empty() && linhaValida(est),
+              "o Mega manda a linha de estatisticas pelo menos 1 vez por segundo");
+    // Ensaio 4: um botao de emergencia. Ensaio 5: um obstaculo, uma Frente
+    // recusada. Paradas: 2 por tempo limite (2 e 3), 1 emergencia (4), 1
+    // obstaculo (5) e 4 por comando (4, 5 e duas no 6).
+    verificar(campo(est, "emerg") == 1 && campo(est, "pemerg") == 1,
+              "conta o botao de emergencia e a parada que ele causou");
+    verificar(campo(est, "obst") == 1 && campo(est, "pobst") == 1,
+              "conta o obstaculo e a parada por obstaculo");
+    verificar(campo(est, "ptlim") == 2 && campo(est, "pcmd") == 4 &&
+                  campo(est, "pgiro") == 0,
+              "conta as paradas por tempo limite e por comando");
+    verificar(campo(est, "app") == 13 && campo(est, "voz") == 0 &&
+                  campo(est, "tec") == 0 && campo(est, "rec") == 1,
+              "conta os comandos por origem (renovacao nao conta) e a recusa");
+    snprintf(texto, sizeof(texto),
+             "tempo andando: %lu s de %lu s ligada",
+             campo(est, "mov"), campo(est, "lig"));
+    verificar(campo(est, "mov") >= 20 && campo(est, "mov") < campo(est, "lig"),
+              texto);
   }
 #else   // PERMITIR_COMANDO_APP == 0
   // ------------------------------------------------------------------

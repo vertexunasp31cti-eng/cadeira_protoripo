@@ -89,6 +89,10 @@ static std::string estado(const PonteCadeira& p, unsigned long agora,
   return std::string(buf, n);
 }
 
+static bool contem(const std::string& s, const std::string& trecho) {
+  return s.find(trecho) != std::string::npos;
+}
+
 static int contar(const std::string& s, const char* trecho) {
   int n = 0;
   size_t pos = 0;
@@ -721,7 +725,8 @@ int main(int argc, char** argv) {
     PonteCadeira p;
     std::string j = estado(p, 1234, 0, 0);
     verificar(j ==
-                  "{\"conectado\":false,\"idade_ms\":null,\"tel\":null,\"seq\":0,"
+                  "{\"conectado\":false,\"idade_ms\":null,\"tel\":null,\"est\":null,"
+                  "\"seq\":0,"
                   "\"eventos\":[],\"esp\":{\"uptime_ms\":1234,\"clientes\":0,"
                   "\"linhas_ok\":0,\"linhas_erro\":0}}",
               "sem nada do Mega: tel e idade_ms null, eventos vazio (texto exato)");
@@ -735,7 +740,7 @@ int main(int argc, char** argv) {
     j = estado(p, 1300, 0, 2);
     std::string esperado =
         "{\"conectado\":true,\"idade_ms\":300,\"tel\":" + telemetria(900, "FRENTE") +
-        ",\"seq\":2,\"eventos\":["
+        ",\"est\":null,\"seq\":2,\"eventos\":["
         "{\"seq\":1,\"idade_ms\":200,\"dados\":" + evento(950) + "},"
         "{\"seq\":2,\"idade_ms\":100,\"dados\":{\"t\":\"evt\",\"ms\":990,"
         "\"tipo\":\"parada\",\"motivo\":\"OBSTACULO\"}}],"
@@ -762,7 +767,8 @@ int main(int argc, char** argv) {
 
     p.iniciar();
     verificar(estado(p, 5, 0, 0) ==
-                  "{\"conectado\":false,\"idade_ms\":null,\"tel\":null,\"seq\":0,"
+                  "{\"conectado\":false,\"idade_ms\":null,\"tel\":null,\"est\":null,"
+                  "\"seq\":0,"
                   "\"eventos\":[],\"esp\":{\"uptime_ms\":5,\"clientes\":0,"
                   "\"linhas_ok\":0,\"linhas_erro\":0}}",
               "iniciar() esquece telemetria, eventos e contadores");
@@ -775,13 +781,55 @@ int main(int argc, char** argv) {
                           std::string(ponte::TAM_LINHA - 4 - 18, 't') + "\"}";
     std::string evt_max = "{\"t\":\"evt\",\"x\":\"" +
                           std::string(ponte::TAM_EVENTO - 1 - 18, 'e') + "\"}";
+    std::string est_max = "{\"t\":\"est\",\"x\":\"" +
+                          std::string(ponte::TAM_ESTATISTICAS - 1 - 18, 's') +
+                          "\"}";
     alimentar(g, linhaMega(tel_max), 1);
+    alimentar(g, linhaMega(est_max), 1);
     for (int i = 0; i < 25; ++i) alimentar(g, linhaMega(evt_max), 1);
     for (int i = 0; i < 1000; ++i) alimentar(g, "x\n", 1);
     j = estado(g, quase, 0, -2147483647 - 1);
     verificar(tel_max.size() == ponte::TAM_LINHA - 4 && g.temTelemetria() &&
-                  !j.empty() && contar(j, "\"dados\":") == 20,
-              "pior caso (telemetria e 20 eventos maximos) cabe em TAM_ESTADO");
+                  est_max.size() == ponte::TAM_ESTATISTICAS - 1 &&
+                  g.temEstatisticas() && !j.empty() &&
+                  contar(j, "\"dados\":") == 20,
+              "pior caso (telemetria, estatisticas e 20 eventos maximos) cabe "
+              "em TAM_ESTADO");
+  }
+
+  // ------------------------------------------------------------------
+  titulo("12b. Estatisticas de uso");
+  {
+    PonteCadeira p;
+    const std::string est =
+        "{\"t\":\"est\",\"lig\":3725,\"mov\":95,\"voz\":2,\"app\":1,"
+        "\"tec\":1,\"rec\":1,\"obst\":1,\"emerg\":0,\"pcmd\":0,"
+        "\"pobst\":1,\"ptlim\":0,\"pgiro\":0,\"pemerg\":0}";
+    alimentar(p, linhaMega(est), 1000);
+    std::string j = estado(p, 1100, 0, 1);
+    verificar(p.temEstatisticas() && contem(j, "\"est\":" + est + ",") &&
+                  contem(j, "\"tel\":null,") && contem(j, "\"conectado\":true"),
+              "linha de estatisticas valida: guardada e repassada sem mudanca");
+    verificar(p.seq() == 0 && p.eventosGuardados() == 0,
+              "estatistica nao entra na fila de eventos");
+
+    const std::string nova =
+        "{\"t\":\"est\",\"lig\":3726,\"mov\":96,\"voz\":2,\"app\":1,"
+        "\"tec\":1,\"rec\":1,\"obst\":2,\"emerg\":0,\"pcmd\":0,"
+        "\"pobst\":2,\"ptlim\":0,\"pgiro\":0,\"pemerg\":0}";
+    alimentar(p, linhaMega(nova), 2000);
+    j = estado(p, 2100, 0, 1);
+    verificar(contem(j, "\"est\":" + nova + ",") && !contem(j, "\"lig\":3725"),
+              "a mais nova substitui a anterior");
+
+    unsigned long erros = p.linhasErro();
+    std::string grande = "{\"t\":\"est\",\"x\":\"" +
+                         std::string(ponte::TAM_ESTATISTICAS, 's') + "\"}";
+    alimentar(p, linhaMega(grande), 3000);
+    alimentar(p, "{\"t\":\"est\",\"obst\":9}*00\n", 3000);
+    j = estado(p, 3100, 0, 1);
+    verificar(p.linhasErro() == erros + 2 && contem(j, "\"est\":" + nova + ","),
+              "estatistica grande demais ou com checksum errado e descartada");
   }
 
   // ------------------------------------------------------------------

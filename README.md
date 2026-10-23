@@ -66,8 +66,9 @@ abrir o endereço no navegador; muitos celulares abrem o app sozinhos.
   o botão PARAR sempre ativo.
 - **Controle**: começa bloqueado. Liberado, Frente e Ré andam só enquanto o
   dedo está no botão; soltou, parou.
-- **Histórico**: cada comando (voz, teclado ou app), parada, obstáculo e
-  emergência, com horário.
+- **Histórico**: resumo desde que a cadeira ligou (obstáculos, botão de
+  emergência, tempo andando, comandos por origem e paradas por motivo) e a
+  lista de cada comando, parada, obstáculo e emergência, com horário.
 - **Sobre o TCC**: o projeto resumido, para a apresentação.
 - **Demonstração**: sem a cadeira, o app simula uma no navegador.
 

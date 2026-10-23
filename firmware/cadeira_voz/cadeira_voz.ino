@@ -63,6 +63,9 @@ LeitorLinhas leitor_app;
 FilaSaida fila_app;
 char linha_app[TAM_LINHA_APP];
 unsigned long t_telemetria_app = 0;
+unsigned long t_estatisticas_app = 0;
+unsigned long t_publicacao = 0;  // volta anterior, para somar o tempo andando
+Estatisticas estatisticas;
 
 // Ultimos valores publicados, para gerar os eventos por borda.
 Estado estado_publicado = EST_PARADA;
@@ -182,6 +185,7 @@ void publicarApp(unsigned long agora, bool emergencia) {
   // A causa sai antes da parada que ela provocou.
   if (emergencia != emergencia_publicada) {
     emergencia_publicada = emergencia;
+    if (emergencia) contarEmergencia(estatisticas);
     enviarAoApp(formatarEventoEmergencia(linha_app, TAM_LINHA_APP, agora,
                                          emergencia));
   }
@@ -189,16 +193,21 @@ void publicarApp(unsigned long agora, bool emergencia) {
   bool obstaculo = controle.obstaculoDetectado();
   if (obstaculo != obstaculo_publicado) {
     obstaculo_publicado = obstaculo;
+    if (obstaculo) contarObstaculo(estatisticas);
     enviarAoApp(formatarEventoObstaculo(linha_app, TAM_LINHA_APP, agora,
                                         obstaculo));
   }
 
   Estado estado = controle.estado();
   if (estado == EST_PARADA && estado_publicado != EST_PARADA) {
+    contarParada(estatisticas, controle.motivoUltimaParada());
     enviarAoApp(formatarEventoParada(linha_app, TAM_LINHA_APP, agora,
                                      controle.motivoUltimaParada()));
   }
   estado_publicado = estado;
+
+  if (controle.emMovimento()) estatisticas.ms_movimento += agora - t_publicacao;
+  t_publicacao = agora;
 
   // A telemetria se repete a cada 250 ms, entao ela espera a fila esvaziar.
   // Assim nunca ocupa o lugar de um evento, que acontece uma vez so.
@@ -219,11 +228,23 @@ void publicarApp(unsigned long agora, bool emergencia) {
     enviarAoApp(formatarTelemetria(linha_app, TAM_LINHA_APP, d));
   }
 
+  // Os contadores mudam devagar: uma linha por segundo basta, e ela tambem
+  // espera a fila esvaziar.
+  if (agora - t_estatisticas_app >= ESTATISTICAS_APP_MS &&
+      fila_app.pendentes() == 0) {
+    t_estatisticas_app = agora;
+    enviarAoApp(formatarEstatisticas(linha_app, TAM_LINHA_APP, agora,
+                                     estatisticas));
+  }
+
   escoarFilaApp();
 }
 
 void iniciarApp(unsigned long agora) {
   t_telemetria_app = agora;
+  t_estatisticas_app = agora;
+  t_publicacao = agora;
+  zerarEstatisticas(estatisticas);
   estado_publicado = controle.estado();
   obstaculo_publicado = controle.obstaculoDetectado();
   emergencia_publicada = false;
@@ -286,6 +307,7 @@ void tratarComando(Comando c, unsigned long agora, const char* origem) {
   bool aceito = controle.aplicarComando(c, agora);
   anunciarComando(c, origem, aceito);
 #if USAR_ESP8266
+  contarComando(estatisticas, origem, aceito);
   enviarAoApp(formatarEventoComando(linha_app, TAM_LINHA_APP, agora, c, origem,
                                     aceito));
 #endif
@@ -301,6 +323,7 @@ void aplicarLinhaApp(const LinhaApp& l, unsigned long agora, bool emergencia) {
       break;
     case ACAO_RECUSAR:
       anunciarComando(l.cmd, "app", false);
+      contarComando(estatisticas, "app", false);
       SERIAL_DEBUG.println(F("  app so acompanha (PERMITIR_COMANDO_APP 0)"));
       enviarAoApp(formatarEventoComando(linha_app, TAM_LINHA_APP, agora, l.cmd,
                                         "app", false));

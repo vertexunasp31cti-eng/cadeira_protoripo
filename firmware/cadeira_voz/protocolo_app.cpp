@@ -256,6 +256,58 @@ unsigned int formatarEventoEmergencia(char* buf, unsigned int cap,
 }
 
 // ---------------------------------------------------------------------------
+// Estatisticas de uso
+// ---------------------------------------------------------------------------
+static void somar(unsigned int& contador) {
+  if (contador < 65535u) ++contador;
+}
+
+void zerarEstatisticas(Estatisticas& e) { memset(&e, 0, sizeof(e)); }
+
+void contarComando(Estatisticas& e, const char* origem, bool aceito) {
+  if (origem != NULL) {
+    if (strcmp(origem, "voz") == 0) {
+      somar(e.cmd_voz);
+    } else if (strcmp(origem, "app") == 0) {
+      somar(e.cmd_app);
+    } else if (strcmp(origem, "teclado") == 0) {
+      somar(e.cmd_teclado);
+    }
+  }
+  if (!aceito) somar(e.recusados);
+}
+
+void contarParada(Estatisticas& e, MotivoParada m) {
+  switch (m) {
+    case PARADA_COMANDO: somar(e.p_comando); break;
+    case PARADA_OBSTACULO: somar(e.p_obstaculo); break;
+    case PARADA_TEMPO_LIMITE: somar(e.p_tempo_limite); break;
+    case PARADA_FIM_DO_GIRO: somar(e.p_fim_giro); break;
+    case PARADA_EMERGENCIA: somar(e.p_emergencia); break;
+    default: break;
+  }
+}
+
+void contarObstaculo(Estatisticas& e) { somar(e.obstaculos); }
+
+void contarEmergencia(Estatisticas& e) { somar(e.emergencias); }
+
+unsigned int formatarEstatisticas(char* buf, unsigned int cap,
+                                  unsigned long ms_ligada,
+                                  const Estatisticas& e) {
+  int n = FORMATAR(buf, cap,
+                   "{\"t\":\"est\",\"lig\":%lu,\"mov\":%lu,\"voz\":%u,"
+                   "\"app\":%u,\"tec\":%u,\"rec\":%u,\"obst\":%u,"
+                   "\"emerg\":%u,\"pcmd\":%u,\"pobst\":%u,\"ptlim\":%u,"
+                   "\"pgiro\":%u,\"pemerg\":%u}",
+                   ms_ligada / 1000UL, e.ms_movimento / 1000UL, e.cmd_voz,
+                   e.cmd_app, e.cmd_teclado, e.recusados, e.obstaculos,
+                   e.emergencias, e.p_comando, e.p_obstaculo, e.p_tempo_limite,
+                   e.p_fim_giro, e.p_emergencia);
+  return fecharLinha(buf, cap, n);
+}
+
+// ---------------------------------------------------------------------------
 // Fila de saida
 // ---------------------------------------------------------------------------
 FilaSaida::FilaSaida() : inicio_(0), quantidade_(0) {}
