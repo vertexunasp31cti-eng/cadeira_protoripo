@@ -140,10 +140,98 @@ void atualizarSinalizacao(unsigned long agora) {
 // Entrada de comandos digitados, para testar sem o modulo de voz
 // ---------------------------------------------------------------------------
 #if MODO_SIMULACAO
-Comando lerComandoDigitado() {
+// Teste dos motores pela tecla 'm': cada roda sozinha, para frente e para
+// tras, para conferir a fiacao da ponte H. Liga os motores direto, fora da
+// maquina de estados, entao so comeca com a cadeira parada e acaba com
+// qualquer comando (teclado, voz ou app) e com o botao de emergencia. Faca
+// com as rodas no ar.
+struct PassoTeste {
+  const char* nome;
+  int esquerdo;  // 1 frente, -1 tras, 0 parado
+  int direito;
+};
+const PassoTeste PASSOS_TESTE[] = {
+    {"roda ESQUERDA para frente", 1, 0},
+    {"roda ESQUERDA para tras", -1, 0},
+    {"roda DIREITA para frente", 0, 1},
+    {"roda DIREITA para tras", 0, -1}};
+const int TOTAL_PASSOS_TESTE = sizeof(PASSOS_TESTE) / sizeof(PASSOS_TESTE[0]);
+const int PWM_TESTE = 180;
+const unsigned long PASSO_TESTE_MS = 1500;
+// Pausa parada entre um passo e outro: a roda nunca inverte girando.
+const unsigned long PAUSA_TESTE_MS = 500;
+
+int passo_teste = -1;  // -1 = sem teste
+bool pausa_teste = false;
+unsigned long t_teste = 0;
+
+bool testandoMotores() { return passo_teste >= 0; }
+
+void pararTesteMotores(const char* motivo) {
+  if (!testandoMotores()) return;
+  passo_teste = -1;
+  motores.aplicar(0, 0);
+  SERIAL_DEBUG.print(F("> teste dos motores: "));
+  SERIAL_DEBUG.println(motivo);
+}
+
+void anunciarPassoTeste() {
+  const PassoTeste& p = PASSOS_TESTE[passo_teste];
+  SERIAL_DEBUG.print(F("> teste "));
+  SERIAL_DEBUG.print(passo_teste + 1);
+  SERIAL_DEBUG.print(F(" de "));
+  SERIAL_DEBUG.print(TOTAL_PASSOS_TESTE);
+  SERIAL_DEBUG.print(F(": "));
+  SERIAL_DEBUG.println(p.nome);
+}
+
+void iniciarTesteMotores(unsigned long agora) {
+  if (controle.estado() != EST_PARADA || controle.emMovimento()) {
+    SERIAL_DEBUG.println(F("> teste dos motores: pare a cadeira antes (p)"));
+    return;
+  }
+  SERIAL_DEBUG.println(F("> teste dos motores (rodas no ar!). Qualquer tecla para."));
+  passo_teste = 0;
+  pausa_teste = false;
+  t_teste = agora;
+  anunciarPassoTeste();
+}
+
+// Chamada no lugar de motores.aplicar() enquanto o teste roda.
+void atualizarTesteMotores(unsigned long agora) {
+  if (pausa_teste) {
+    motores.aplicar(0, 0);
+    if (agora - t_teste < PAUSA_TESTE_MS) return;
+    pausa_teste = false;
+    t_teste = agora;
+    ++passo_teste;
+    anunciarPassoTeste();
+  }
+  const PassoTeste& p = PASSOS_TESTE[passo_teste];
+  motores.aplicar(p.esquerdo * PWM_TESTE, p.direito * PWM_TESTE);
+  if (agora - t_teste < PASSO_TESTE_MS) return;
+  if (passo_teste + 1 < TOTAL_PASSOS_TESTE) {
+    motores.aplicar(0, 0);
+    pausa_teste = true;
+    t_teste = agora;
+  } else {
+    pararTesteMotores("fim. Girou cada roda para o lado certo?");
+  }
+}
+
+Comando lerComandoDigitado(unsigned long agora) {
   if (!SERIAL_DEBUG.available()) return CMD_NENHUM;
   char c = (char)SERIAL_DEBUG.read();
+  if (c == '\n' || c == '\r') return CMD_NENHUM;
+  // Com o teste rodando, qualquer tecla so para o teste.
+  if (testandoMotores()) {
+    pararTesteMotores("parado pela tecla");
+    return CMD_NENHUM;
+  }
   switch (c) {
+    case 'm': case 'M':
+      iniciarTesteMotores(agora);
+      return CMD_NENHUM;
     case 'f': case 'F': return CMD_FRENTE;
     case 't': case 'T': return CMD_RE;
     case 'e': case 'E': return CMD_ESQUERDA;
@@ -262,6 +350,7 @@ void mostrarAjuda() {
   SERIAL_DEBUG.println(F("           parar | rapido | devagar"));
 #if MODO_SIMULACAO
   SERIAL_DEBUG.println(F(" Teclado:  f t e d p (espaco=parar) + -"));
+  SERIAL_DEBUG.println(F("           m = testar os motores, um de cada vez"));
 #endif
 #if USAR_ESP8266
   SERIAL_DEBUG.println(PERMITIR_COMANDO_APP
@@ -303,6 +392,9 @@ void anunciarComando(Comando c, const char* origem, bool aceito) {
 
 void tratarComando(Comando c, unsigned long agora, const char* origem) {
   if (c == CMD_NENHUM) return;
+#if MODO_SIMULACAO
+  pararTesteMotores("parado por um comando");
+#endif
 
   bool aceito = controle.aplicarComando(c, agora);
   anunciarComando(c, origem, aceito);
@@ -433,6 +525,9 @@ void loop() {
   // 1) Botao fisico de emergencia tem prioridade sobre qualquer comando.
   if (digitalRead(PINO_BOTAO_EMERG) == NIVEL_BOTAO_ACIONADO) {
     controle.pararEmergencia(agora);
+#if MODO_SIMULACAO
+    pararTesteMotores("parado pelo botao de emergencia");
+#endif
     motores.aplicar(0, 0);
     digitalWrite(PINO_LED, HIGH);
     descartarComandos(agora);
@@ -453,7 +548,7 @@ void loop() {
 
   // 3) Comandos digitados (bancada e demonstracao).
 #if MODO_SIMULACAO
-  tratarComando(lerComandoDigitado(), agora, "teclado");
+  tratarComando(lerComandoDigitado(agora), agora, "teclado");
 #endif
 
   // 4) Comandos do app no celular, repassados pelo ESP8266.
@@ -464,7 +559,15 @@ void loop() {
   // 5) Sensor, maquina de estados e saida para os motores.
   bool obstaculo = sensor.atualizar(agora);
   controle.atualizar(agora, obstaculo);
+#if MODO_SIMULACAO
+  if (testandoMotores()) {
+    atualizarTesteMotores(agora);
+  } else {
+    motores.aplicar(controle.pwmEsquerdo(), controle.pwmDireito());
+  }
+#else
   motores.aplicar(controle.pwmEsquerdo(), controle.pwmDireito());
+#endif
 
   atualizarSinalizacao(agora);
   telemetria(agora);

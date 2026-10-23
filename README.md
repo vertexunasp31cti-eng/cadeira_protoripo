@@ -160,6 +160,7 @@ teclado pelo Monitor Serial:
 | `p` ou espaço | parar |
 | `+` | mais rápido |
 | `-` | mais devagar |
+| `m` | testar os motores: cada roda para frente e para trás, uma de cada vez |
 
 Isso permite ajustar a mecânica antes de treinar a voz, e serve de plano B na
 apresentação se o ambiente estiver barulhento demais. O app no celular é

@@ -584,6 +584,67 @@ int main() {
   }
 #endif  // USAR_ESP8266
 
+#if MODO_SIMULACAO
+  // ------------------------------------------------------------------
+  titulo("10. Teste dos motores pela tecla m");
+  {
+    // Mesma conta de motoresParados(), que so existe na versao com o ESP.
+    auto parados = []() {
+      return pinos_simulados[PINO_ENA] == 0 && pinos_simulados[PINO_ENB] == 0;
+    };
+    Serial.injetar("p");
+    rodar(3000);  // parada e rampa ate zero
+    // Esquerdo: ENA/IN1/IN2. Direito: ENB/IN3/IN4. Frente = IN1 (ou IN3) HIGH.
+    struct Esperado { int ena, in1, in2, enb, in3, in4; };
+    const Esperado passos[4] = {{180, 1, 0, 0, 0, 0}, {180, 0, 1, 0, 0, 0},
+                                {0, 0, 0, 180, 1, 0}, {0, 0, 0, 180, 0, 1}};
+    Serial.injetar("m");
+    bool ordem = true;
+    for (int i = 0; i < 4; ++i) {
+      rodar(i == 0 ? 10 : 2000);  // meio de cada passo de 1,5 s
+      const Esperado& e = passos[i];
+      ordem &= pinos_simulados[PINO_ENA] == e.ena &&
+               pinos_simulados[PINO_IN1] == e.in1 &&
+               pinos_simulados[PINO_IN2] == e.in2 &&
+               pinos_simulados[PINO_ENB] == e.enb &&
+               pinos_simulados[PINO_IN3] == e.in3 &&
+               pinos_simulados[PINO_IN4] == e.in4;
+    }
+    verificar(ordem, "esquerda frente, esquerda tras, direita frente, direita tras");
+    rodar(1500);
+    verificar(parados() && controle.estado() == EST_PARADA,
+              "no fim, os motores param sozinhos");
+
+    // Entre um passo e outro a roda fica parada: nunca inverte girando.
+    Serial.injetar("m");
+    rodar(1600);
+    verificar(parados(), "pausa parada entre frente e tras");
+
+    Serial.injetar("x");
+    rodar(5);
+    verificar(parados() && !testandoMotores(), "qualquer tecla para o teste");
+
+    Serial.injetar("m");
+    rodar(100);
+    bool girando = !parados();
+    pinos_simulados[PINO_BOTAO_EMERG] = NIVEL_BOTAO_ACIONADO;
+    rodar(1);
+    bool parou = parados() && !testandoMotores();
+    pinos_simulados[PINO_BOTAO_EMERG] = !NIVEL_BOTAO_ACIONADO;
+    rodar(3000);
+    verificar(girando && parou && parados(),
+              "o botao de emergencia para o teste e ele nao volta sozinho");
+
+    Serial.injetar("f");
+    rodar(100);
+    Serial.injetar("m");
+    rodar(100);
+    verificar(!testandoMotores(), "com a cadeira andando, o teste nao comeca");
+    Serial.injetar("p");
+    rodar(100);
+  }
+#endif
+
   printf("\n----------------------------------------\n");
   printf("Total: %d   Falhas: %d\n", total, falhas);
   if (falhas == 0) printf("Todos os ensaios passaram.\n");

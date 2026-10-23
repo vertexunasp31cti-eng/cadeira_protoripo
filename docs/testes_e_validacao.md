@@ -115,6 +115,11 @@ Faça nesta ordem. Cada etapa só começa quando a anterior passa.
 Suspenda o carrinho com as rodas no ar. Envie o firmware principal e use o
 Monitor Serial em 115200 com as teclas `f`, `t`, `e`, `d`, `p`.
 
+- Digite `m` para testar cada roda sozinha: esquerda para frente, esquerda
+  para trás, direita para frente e direita para trás, 1,5 s cada. O Monitor
+  Serial avisa qual passo está rodando, e qualquer tecla para o teste. Se
+  uma roda não gira no passo dela, o problema está no fio ou no motor
+  daquele lado.
 - As duas rodas giram para o mesmo lado no comando `f`.
 - Se uma girar ao contrário, mude `INVERTER_MOTOR_ESQ` ou
   `INVERTER_MOTOR_DIR` em `config.h`, em vez de trocar os fios.
