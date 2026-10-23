@@ -123,6 +123,45 @@ int main() {
   }
 
   // ------------------------------------------------------------------
+  titulo("1b. Estatisticas do Mega chegam intactas ao JSON do app");
+  {
+    ponte::PonteCadeira p;
+    p.iniciar();
+    Estatisticas est;
+    zerarEstatisticas(est);
+    contarComando(est, "voz", true);
+    contarObstaculo(est);
+    verificar(formatarEstatisticas(linha, sizeof(linha), 61000UL, est) > 0,
+              "Mega formata as estatisticas");
+    megaParaPonte(p, linha, 1000);
+    std::string e = estado(p, 1010, 0);
+    verificar(contem(e, "\"est\":" + conteudo(linha) + ","),
+              "o JSON do app traz as estatisticas como o Mega mandou");
+
+    // Pior caso: todo contador no limite e o maior millis().
+    for (long i = 0; i < 70000; ++i) {
+      contarComando(est, "voz", false);
+      contarComando(est, "app", true);
+      contarComando(est, "teclado", true);
+      contarObstaculo(est);
+      contarEmergencia(est);
+      contarParada(est, PARADA_COMANDO);
+      contarParada(est, PARADA_OBSTACULO);
+      contarParada(est, PARADA_TEMPO_LIMITE);
+      contarParada(est, PARADA_FIM_DO_GIRO);
+      contarParada(est, PARADA_EMERGENCIA);
+    }
+    est.ms_movimento = 4294967295UL;
+    verificar(formatarEstatisticas(linha, sizeof(linha), 4294967295UL, est) > 0,
+              "estatisticas no pior caso cabem na linha do Mega");
+    megaParaPonte(p, linha, 2000);
+    e = estado(p, 2010, 0);
+    verificar(contem(e, "\"est\":" + conteudo(linha) + ",") &&
+                  p.linhasErro() == 0,
+              "e no pior caso tambem passam pela ponte sem mudar");
+  }
+
+  // ------------------------------------------------------------------
   titulo("2. Todo evento do Mega entra no historico do app, em ordem");
   {
     ponte::PonteCadeira p;

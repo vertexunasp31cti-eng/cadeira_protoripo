@@ -146,6 +146,40 @@ unsigned int formatarEventoObstaculo(char* buf, unsigned int cap,
 unsigned int formatarEventoEmergencia(char* buf, unsigned int cap,
                                       unsigned long ms, bool ativa);
 
+// Contadores de uso desde que a cadeira ligou, para o resumo do app e para a
+// secao de resultados do TCC. Nenhuma decisao de seguranca depende deles.
+//
+// Os contadores param em 65535 em vez de voltar a zero: o int do AVR tem 16
+// bits, e um numero que de repente cai para zero confundiria quem le.
+struct Estatisticas {
+  unsigned long ms_movimento;  // tempo com alguma roda recebendo PWM
+  unsigned int cmd_voz;        // comandos tratados, por origem
+  unsigned int cmd_app;
+  unsigned int cmd_teclado;
+  unsigned int recusados;      // comandos recusados, de qualquer origem
+  unsigned int obstaculos;     // vezes que o sensor passou a ver obstaculo
+  unsigned int emergencias;    // vezes que o botao de emergencia foi apertado
+  unsigned int p_comando;      // paradas, por motivo
+  unsigned int p_obstaculo;
+  unsigned int p_tempo_limite;
+  unsigned int p_fim_giro;
+  unsigned int p_emergencia;
+};
+
+void zerarEstatisticas(Estatisticas& e);
+
+// origem: "voz", "app" ou "teclado".
+void contarComando(Estatisticas& e, const char* origem, bool aceito);
+void contarParada(Estatisticas& e, MotivoParada m);
+void contarObstaculo(Estatisticas& e);
+void contarEmergencia(Estatisticas& e);
+
+// Linha completa "{"t":"est",...}*HH\n", como os formatar* acima. Tempos em
+// segundos: ms_ligada e o millis() do Mega.
+unsigned int formatarEstatisticas(char* buf, unsigned int cap,
+                                  unsigned long ms_ligada,
+                                  const Estatisticas& e);
+
 // Fila dos bytes que ainda vao sair para o ESP.
 //
 // Serial.print() fica esperando quando o buffer de transmissao do Mega (64

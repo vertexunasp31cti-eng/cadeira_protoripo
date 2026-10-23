@@ -16,6 +16,7 @@ const unsigned int TOTAL_NOMES =
 
 const char PREFIXO_TEL[] = "{\"t\":\"tel\",";
 const char PREFIXO_EVT[] = "{\"t\":\"evt\",";
+const char PREFIXO_EST[] = "{\"t\":\"est\",";
 const unsigned int TAM_PREFIXO = sizeof(PREFIXO_TEL) - 1;
 
 #define TAM_TEXTO(s) (sizeof(s) - 1)
@@ -30,7 +31,8 @@ const unsigned int PIOR_EVENTO =
     TAM_TEXTO(",");
 const unsigned int PIOR_ESTADO =
     TAM_TEXTO("{\"conectado\":false") + TAM_TEXTO(",\"idade_ms\":") + 10 +
-    TAM_TEXTO(",\"tel\":") + (TAM_LINHA - 4) + TAM_TEXTO(",\"seq\":") + 10 +
+    TAM_TEXTO(",\"tel\":") + (TAM_LINHA - 4) +
+    TAM_TEXTO(",\"est\":") + (TAM_ESTATISTICAS - 1) + TAM_TEXTO(",\"seq\":") + 10 +
     TAM_TEXTO(",\"eventos\":[") + MAX_EVENTOS * PIOR_EVENTO +
     TAM_TEXTO("],\"esp\":{\"uptime_ms\":") + 10 +
     TAM_TEXTO(",\"clientes\":") + 11 + TAM_TEXTO(",\"linhas_ok\":") + 10 +
@@ -283,6 +285,8 @@ TipoLinhaMega validarLinhaMega(const char* linha, unsigned int n,
     tipo = LINHA_TELEMETRIA;
   } else if (memcmp(linha, PREFIXO_EVT, TAM_PREFIXO) == 0) {
     tipo = LINHA_EVENTO;
+  } else if (memcmp(linha, PREFIXO_EST, TAM_PREFIXO) == 0) {
+    tipo = LINHA_ESTATISTICAS;
   } else {
     return LINHA_RUIM;
   }
@@ -382,6 +386,8 @@ void PonteCadeira::iniciar() {
   tel_[0] = '\0';
   tem_tel_ = false;
   t_tel_ = 0;
+  est_[0] = '\0';
+  tem_est_ = false;
   tem_linha_ = false;
   t_linha_ = 0;
   ev_inicio_ = 0;
@@ -407,7 +413,8 @@ void PonteCadeira::tratarLinha(const char* linha, unsigned int n,
                                unsigned long agora_ms) {
   unsigned int tam = 0;
   TipoLinhaMega tipo = validarLinhaMega(linha, n, &tam);
-  if (tipo == LINHA_RUIM || (tipo == LINHA_EVENTO && tam >= TAM_EVENTO)) {
+  if (tipo == LINHA_RUIM || (tipo == LINHA_EVENTO && tam >= TAM_EVENTO) ||
+      (tipo == LINHA_ESTATISTICAS && tam >= TAM_ESTATISTICAS)) {
     ++linhas_erro_;
     return;
   }
@@ -417,6 +424,10 @@ void PonteCadeira::tratarLinha(const char* linha, unsigned int n,
     tel_[tam] = '\0';
     tem_tel_ = true;
     t_tel_ = agora_ms;
+  } else if (tipo == LINHA_ESTATISTICAS) {
+    memcpy(est_, linha, tam);
+    est_[tam] = '\0';
+    tem_est_ = true;
   } else {
     guardarEvento(linha, tam, agora_ms);
   }
@@ -465,6 +476,8 @@ unsigned int PonteCadeira::montarEstado(char* buf, unsigned int cap,
   // de validados como objeto JSON (validarLinhaMega).
   e.texto(",\"tel\":");
   e.texto(tem_tel_ ? tel_ : "null");
+  e.texto(",\"est\":");
+  e.texto(tem_est_ ? est_ : "null");
   e.texto(",\"seq\":");
   e.numero(seq_);
 

@@ -67,6 +67,7 @@ principal e por isso não aparece nos testes da máquina de estados:
 | reinício do ESP | depois do lixo de boot do ESP na serial, o primeiro "parar" é obedecido |
 | ruído | 20 000 bytes aleatórios não geram nenhum comando, e o laço lê no máximo 64 bytes por volta |
 | serial cheia | com o buffer de transmissão cheio, nada é escrito e o laço não trava |
+| estatísticas | depois dos ensaios acima, os contadores enviados ao app batem um a um com o que aconteceu |
 
 Cada ensaio foi conferido do jeito inverso: tirando do firmware a proteção
 correspondente (o descarte na emergência, a limpeza da serial no fim do
@@ -194,6 +195,12 @@ repetições de cada comando:
 | autonomia | tempo de operação contínua até a bateria cair |
 | tempo entre tocar no app e a cadeira reagir | análise de vídeo quadro a quadro, mostrando a tela e a roda |
 | alcance do Wi-Fi | distância em que o app perde a conexão, com e sem parede no caminho |
+
+O resumo da aba Histórico do app ajuda nessas medições: depois de um ensaio,
+ele mostra quantas vezes o sensor detectou obstáculo, quantas paradas houve
+por motivo (comando, obstáculo, homem-morto, emergência, fim do giro), os
+comandos recusados e o tempo andando, contados pelo próprio Mega. Os números
+zeram quando a cadeira é desligada: anote antes de desligar.
 
 Registre também as falhas. Um TCC de robótica que mostra onde o protótipo
 falha e explica por quê vale mais do que um que só mostra o que deu certo.

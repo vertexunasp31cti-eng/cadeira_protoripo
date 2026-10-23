@@ -33,12 +33,16 @@ const unsigned int MAX_EVENTOS = 20;
 // enormes) ainda caber em TAM_ESTADO; evento maior conta como linha com erro.
 const unsigned int TAM_EVENTO = 128;
 
+// Maior linha de estatisticas guardada, contando o '\0'. A do Mega tem no
+// maximo 184 caracteres, com todos os contadores no limite.
+const unsigned int TAM_ESTATISTICAS = 200;
+
 // Ordenacao de comandos por cliente.
 const unsigned int MAX_IDS = 8;
 const unsigned int TAM_MAX_ID = 16;
 
 // Buffer do JSON de GET /api/estado (estatico, no esp_wifi.ino).
-const unsigned int TAM_ESTADO = 4096;
+const unsigned int TAM_ESTADO = 4608;
 
 // Buffer da linha de comando para o Mega. A maior e "\nCMD:esquerda*HH\n",
 // 17 bytes mais o '\0'.
@@ -72,11 +76,16 @@ class LeitorSerial {
   unsigned long descartadas_;
 };
 
-enum TipoLinhaMega { LINHA_RUIM, LINHA_TELEMETRIA, LINHA_EVENTO };
+enum TipoLinhaMega {
+  LINHA_RUIM,
+  LINHA_TELEMETRIA,
+  LINHA_EVENTO,
+  LINHA_ESTATISTICAS
+};
 
 // Valida uma linha do Mega (n bytes, sem o '\n'): so ASCII imprimivel,
 // "*HH" no fim com o checksum certo (hex maiusculo ou minusculo), conteudo
-// comecando com {"t":"tel", ou {"t":"evt", e terminando em }. Em
+// comecando com {"t":"tel", {"t":"evt", ou {"t":"est", e terminando em }. Em
 // *tam_conteudo devolve o tamanho do JSON, sem o "*HH".
 //
 // Alem do contrato, exige que o conteudo seja um objeto JSON plano valido.
@@ -143,6 +152,7 @@ class PonteCadeira {
   unsigned long seq() const { return seq_; }
   unsigned int eventosGuardados() const { return ev_qtd_; }
   bool temTelemetria() const { return tem_tel_; }
+  bool temEstatisticas() const { return tem_est_; }
 
  private:
   struct Evento {
@@ -167,6 +177,9 @@ class PonteCadeira {
   char tel_[TAM_LINHA];
   bool tem_tel_;
   unsigned long t_tel_;
+
+  char est_[TAM_ESTATISTICAS];
+  bool tem_est_;
 
   bool tem_linha_;
   unsigned long t_linha_;

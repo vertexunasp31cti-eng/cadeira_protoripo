@@ -110,8 +110,11 @@ vários milissegundos.
 O ESP8266 não decide nada sobre movimento. Ele recebe os pedidos do celular
 e os repassa ao Mega, que os trata como um comando de voz, pela mesma
 máquina de estados. No sentido contrário, o Mega manda o estado da cadeira a
-cada 250 ms e um aviso no instante de cada evento (comando, parada,
-obstáculo, emergência). O protocolo completo está em
+cada 250 ms, um aviso no instante de cada evento (comando, parada,
+obstáculo, emergência) e, a cada segundo, contadores de uso desde que a
+cadeira ligou: obstáculos, acionamentos do botão de emergência, tempo
+andando, comandos por origem e paradas por motivo. Esses contadores aparecem
+no app e ajudam a levantar os resultados dos ensaios. O protocolo completo está em
 `docs/app_integracao.md`.
 
 ### Máquina de estados

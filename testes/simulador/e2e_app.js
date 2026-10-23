@@ -227,6 +227,27 @@ async function principal(navegador) {
       "soltou o botao: nada que chegou durante a emergencia e executado");
 
     // ------------------------------------------------------------------
+    titulo("5b. Resumo de uso no Historico");
+    await pagina.click("#tab-historico");
+    await pagina.waitForSelector("#resumo", { state: "visible", timeout: 3000 });
+    await esperar(1300);  // o Mega manda as estatisticas uma vez por segundo
+    const resumo = await pagina.evaluate(() => ({
+      obst: Number(document.getElementById("r-obst").textContent),
+      emerg: Number(document.getElementById("r-emerg").textContent),
+      origem: document.getElementById("r-origem").textContent,
+      paradas: document.getElementById("r-paradas").textContent,
+    }));
+    verificar(resumo.obst === 1 && resumo.emerg === 1,
+      `o resumo conta 1 obstaculo e 1 botao de emergencia (${resumo.obst} e ${resumo.emerg})`);
+    // No ensaio 4 a cadeira ja estava parada quando o obstaculo apareceu: a
+    // Frente foi recusada, mas nao houve parada por obstaculo.
+    verificar(/Obstáculo0/.test(resumo.paradas) && /Emergência1/.test(resumo.paradas) &&
+                /Fim do giro1/.test(resumo.paradas) && !/Comando0/.test(resumo.paradas),
+      "paradas por motivo: so as que aconteceram com a cadeira andando");
+    verificar(/App\d+/.test(resumo.origem) && !/App0/.test(resumo.origem), "comandos pelo app contados");
+    await pagina.click("#tab-painel");
+
+    // ------------------------------------------------------------------
     titulo("6. Wi-Fi cai com a cadeira andando");
     soltar = await segurar(pagina, "#btn-frente");
     await ate(porta, (x) => x.estado === "FRENTE", 2000);
